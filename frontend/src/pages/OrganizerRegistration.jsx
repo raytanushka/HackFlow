@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Rocket, Zap, Users, Trophy, ArrowRight, HelpCircle,
-  User, Mail, CreditCard, Calendar, UserCircle, Code2,
+  User, Mail, CreditCard, Calendar, UserCircle, Code2, ArrowLeft
 } from "lucide-react";
 
 function useWindowWidth() {
@@ -15,14 +15,68 @@ function useWindowWidth() {
   return width;
 }
 
-export default function OrganizerRegistration() {
+export default function OrganizerRegistration({ onRegistrationSuccess, onNavigate, user }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [orgId, setOrgId] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const width = useWindowWidth();
 
+  useEffect(() => {
+    const saved = localStorage.getItem("hackflow_user");
+    if (saved) {
+      try {
+        const u = JSON.parse(saved);
+        if (u.name) setName(u.name);
+        if (u.email) setEmail(u.email);
+        if (u.orgId) setOrgId(u.orgId);
+      } catch(e){}
+    }
+  }, []);
+
   const canProceed = name.trim() && email.trim() && orgId.trim();
+
+  const handleProceed = async () => {
+    if (!canProceed) return;
+    setLoading(true);
+
+    const userData = {
+      name: name.trim(),
+      email: email.trim(),
+      orgId: orgId.trim(),
+      role: "organizer"
+    };
+
+    localStorage.setItem("hackflow_user", JSON.stringify(userData));
+
+    try {
+      await fetch("http://localhost:8000/api/auth/register-organizer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          org_id: orgId.trim()
+        })
+      });
+    } catch (e) {
+      console.log("Backend offline or local demo mode", e);
+    }
+
+    setLoading(false);
+    setSubmitted(true);
+
+    if (onRegistrationSuccess) {
+      onRegistrationSuccess(userData);
+    }
+
+    setTimeout(() => {
+      if (onNavigate) {
+        onNavigate("Organizer Dashboard");
+      }
+    }, 900);
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "#0F1115", fontFamily: "Inter, sans-serif", color: "#E8E6F0" }}>
@@ -72,44 +126,40 @@ export default function OrganizerRegistration() {
 
       {/* Top bar */}
       <div style={{ borderBottom: "1px solid #1D2029", padding: "18px 24px" }}>
-        <div style={{ maxWidth: 1240, margin: "0 auto", display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 7, background: "#7C5CFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Rocket size={16} color="#0F1115" strokeWidth={2.5} />
-          </div>
-          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 16, letterSpacing: "-0.01em" }}>
-            HackFlow
-          </span>
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 16 }}>
-            <span style={{ fontSize: 13.5, color: "#9A96AC", display: width < 500 ? "none" : "inline" }}>
-              Already have an account?
+        <div style={{ maxWidth: 1240, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => onNavigate && onNavigate("HackFlow Home")}>
+            <div style={{ width: 30, height: 30, borderRadius: 7, background: "#7C5CFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Rocket size={16} color="#0F1115" strokeWidth={2.5} />
+            </div>
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 16 }}>
+              HackFlow
             </span>
-            <button style={{
-              background: "transparent", border: "1px solid #3A3560", color: "#B8A9FD",
-              padding: "8px 18px", borderRadius: 8, fontSize: 13.5, fontWeight: 500,
-              cursor: "pointer", fontFamily: "Inter, sans-serif",
-            }}>
-              Log in
-            </button>
           </div>
+
+          <button
+            onClick={() => onNavigate && onNavigate("HackFlow Home")}
+            style={{
+              display: "flex", alignItems: "center", gap: 6, background: "none", border: "1px solid #262A34",
+              color: "#C7C4D6", padding: "7px 12px", borderRadius: 8, fontSize: 13, cursor: "pointer"
+            }}
+          >
+            <ArrowLeft size={14} /> Back to Home
+          </button>
         </div>
       </div>
 
-      <div style={{ maxWidth: 1240, margin: "0 auto", padding: "64px 24px 80px" }}>
+      <div style={{ maxWidth: 1240, margin: "0 auto", padding: "48px 24px 60px" }}>
         <div className="split">
-          {/* Left: pitch */}
+          {/* Left: copy */}
           <div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#9B87F5", display: "block", marginBottom: 14 }}>
-              Organizer registration
-            </span>
-            <h1 style={{
-              fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(32px, 5vw, 46px)",
-              fontWeight: 600, lineHeight: 1.12, letterSpacing: "-0.02em", margin: "0 0 20px",
-            }}>
-              Run the hackathon<br />your team needs.
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 600, color: "#9B87F5", letterSpacing: "0.12em", marginBottom: 12 }}>
+              <Zap size={14} color="#9B87F5" /> FOR ORGANIZERS
+            </div>
+            <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(32px, 5vw, 44px)", fontWeight: 700, margin: "0 0 16px", lineHeight: 1.15 }}>
+              Register your organization to create hackathons
             </h1>
-            <p style={{ color: "#9A96AC", fontSize: 16, lineHeight: 1.6, margin: "0 0 36px", maxWidth: 440 }}>
-              Register as an organizer to open tracks, review submissions, and get your event
-              in front of student builders on HackFlow.
+            <p style={{ color: "#9A96AC", fontSize: 15.5, lineHeight: 1.6, margin: "0 0 36px", maxWidth: 520 }}>
+              Unlock the full organizer dashboard to manage registrations, teams, tracks, and judges effortlessly.
             </p>
 
             <div className="stats-row" style={{ marginBottom: 56 }}>
@@ -127,7 +177,7 @@ export default function OrganizerRegistration() {
             padding: "32px", width: "100%",
           }}>
             {submitted ? (
-              <SuccessState name={name} />
+              <SuccessState name={name} onNavigate={onNavigate} />
             ) : (
               <>
                 <div style={{ display: "flex", gap: 14, marginBottom: 26 }}>
@@ -165,13 +215,13 @@ export default function OrganizerRegistration() {
                 <Field label="Organizer ID" required>
                   <div style={{ position: "relative" }}>
                     <CreditCard size={16} className="field-icon" />
-                    <input value={orgId} onChange={(e) => setOrgId(e.target.value)} placeholder="Enter your organizer ID" />
+                    <input value={orgId} onChange={(e) => setOrgId(e.target.value)} placeholder="Enter your organizer ID (e.g. org_01)" />
                   </div>
                 </Field>
 
                 <button
-                  disabled={!canProceed}
-                  onClick={() => canProceed && setSubmitted(true)}
+                  disabled={!canProceed || loading}
+                  onClick={handleProceed}
                   style={{
                     width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                     background: canProceed ? "linear-gradient(135deg, #8A6EFC, #6D4FE8)" : "#262A34",
@@ -180,7 +230,7 @@ export default function OrganizerRegistration() {
                     cursor: canProceed ? "pointer" : "not-allowed", fontFamily: "Inter, sans-serif", marginTop: 6,
                   }}
                 >
-                  Proceed <ArrowRight size={16} />
+                  {loading ? "Registering..." : "Proceed & Access Dashboard"} <ArrowRight size={16} />
                 </button>
 
                 <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "26px 0 16px" }}>
@@ -226,7 +276,7 @@ function Feature({ icon: Icon, title, note }) {
   );
 }
 
-function SuccessState({ name }) {
+function SuccessState({ name, onNavigate }) {
   return (
     <div style={{ textAlign: "center", padding: "24px 8px" }}>
       <div style={{
@@ -237,11 +287,21 @@ function SuccessState({ name }) {
         <Trophy size={24} color="#4ADE80" />
       </div>
       <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 21, fontWeight: 600, margin: "0 0 10px" }}>
-        Welcome, {name.split(" ")[0] || "organizer"}
+        Welcome, {name.split(" ")[0] || "organizer"}!
       </h2>
-      <p style={{ color: "#9A96AC", fontSize: 14, lineHeight: 1.6, margin: 0 }}>
-        Your organizer request is in. We'll verify your ID and unlock your dashboard shortly.
+      <p style={{ color: "#9A96AC", fontSize: 14, lineHeight: 1.6, margin: "0 0 24px" }}>
+        Your registration is complete! Redirecting to your Organizer Dashboard...
       </p>
+      <button
+        onClick={() => onNavigate && onNavigate("Organizer Dashboard")}
+        style={{
+          background: "linear-gradient(135deg, #8A6EFC, #6D4FE8)", color: "#FFF",
+          border: "none", padding: "12px 20px", borderRadius: 8, fontSize: 14,
+          fontWeight: 600, cursor: "pointer"
+        }}
+      >
+        Go to Dashboard Now
+      </button>
     </div>
   );
 }
@@ -257,7 +317,6 @@ function HeroIllustration({ hideOnNarrow }) {
         <ellipse cx="210" cy="190" rx="150" ry="18" stroke="#3A3560" strokeWidth="1" opacity="0.5" />
       </svg>
 
-      {/* floating icon chips */}
       <div style={{ position: "absolute", top: 8, left: 40 }}>
         <IconChip icon={Calendar} />
       </div>
@@ -268,7 +327,6 @@ function HeroIllustration({ hideOnNarrow }) {
         <IconChip icon={Trophy} />
       </div>
 
-      {/* laptop */}
       <div style={{
         position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)",
         width: 220, height: 150,

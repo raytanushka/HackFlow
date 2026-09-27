@@ -3,7 +3,7 @@ import {
   Rocket, Bell, ChevronDown, Users, FolderKanban, Gavel, Tag,
   Calendar, Clock, ArrowRight, Code2, BarChart3, Accessibility, Shield,
   Leaf, HeartPulse, BookOpen, Cpu, Activity, UserPlus, ClipboardCheck,
-  UserCheck, AlertCircle,
+  UserCheck, AlertCircle, Home, LogOut
 } from "lucide-react";
 
 const TRACKS = [
@@ -40,8 +40,15 @@ const ACTIVITY = [
   { icon: AlertCircle, color: "#EAB308", title: "Submission deadline upcoming", note: "1 day remaining", time: "Feb 28, 6:00 PM" },
 ];
 
-export default function OrganizerDashboard() {
+export default function OrganizerDashboard({ user, onNavigate, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const currentUser = user || (localStorage.getItem("hackflow_user") ? JSON.parse(localStorage.getItem("hackflow_user")) : null);
+
+  const handleLogout = () => {
+    localStorage.removeItem("hackflow_user");
+    if (onLogout) onLogout();
+    if (onNavigate) onNavigate("HackFlow Home");
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "#0F1115", fontFamily: "Inter, sans-serif", color: "#E8E6F0" }}>
@@ -96,12 +103,14 @@ export default function OrganizerDashboard() {
       {/* Top bar */}
       <div style={{ borderBottom: "1px solid #1D2029", padding: "16px 24px" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 7, background: "#7C5CFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Rocket size={16} color="#0F1115" strokeWidth={2.5} />
+          <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => onNavigate && onNavigate("HackFlow Home")}>
+            <div style={{ width: 30, height: 30, borderRadius: 7, background: "#7C5CFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Rocket size={16} color="#0F1115" strokeWidth={2.5} />
+            </div>
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 16, letterSpacing: "-0.01em" }}>
+              HackFlow
+            </span>
           </div>
-          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 16, letterSpacing: "-0.01em" }}>
-            HackFlow
-          </span>
 
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 18 }}>
             <div style={{ position: "relative" }}>
@@ -113,19 +122,31 @@ export default function OrganizerDashboard() {
               style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", position: "relative" }}
             >
               <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(124,92,252,0.25)", border: "1px solid #7C5CFC", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12.5, fontWeight: 600, color: "#B8A9FD" }}>
-                O
+                {currentUser && currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "O"}
               </div>
-              <span style={{ fontSize: 14, fontWeight: 500 }}>Organizer</span>
+              <span style={{ fontSize: 14, fontWeight: 500 }}>
+                {currentUser ? currentUser.name : "Organizer"}
+              </span>
               <ChevronDown size={14} color="#9A96AC" />
+
               {menuOpen && (
                 <div style={{
                   position: "absolute", top: 36, right: 0, background: "#171A21",
-                  border: "1px solid #262A34", borderRadius: 10, padding: 6, minWidth: 140,
+                  border: "1px solid #262A34", borderRadius: 10, padding: 6, minWidth: 160,
                   boxShadow: "0 12px 24px rgba(0,0,0,0.4)", zIndex: 10,
                 }}>
-                  <div style={{ padding: "8px 10px", fontSize: 13.5, color: "#C7C4D6", borderRadius: 6, cursor: "pointer" }}>Profile</div>
-                  <div style={{ padding: "8px 10px", fontSize: 13.5, color: "#C7C4D6", borderRadius: 6, cursor: "pointer" }}>Settings</div>
-                  <div style={{ padding: "8px 10px", fontSize: 13.5, color: "#F87171", borderRadius: 6, cursor: "pointer" }}>Log out</div>
+                  <div
+                    onClick={() => onNavigate && onNavigate("HackFlow Home")}
+                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", fontSize: 13.5, color: "#C7C4D6", borderRadius: 6, cursor: "pointer" }}
+                  >
+                    <Home size={14} color="#7C5CFC" /> Home Page
+                  </div>
+                  <div
+                    onClick={handleLogout}
+                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", fontSize: 13.5, color: "#F87171", borderRadius: 6, cursor: "pointer" }}
+                  >
+                    <LogOut size={14} /> Log out
+                  </div>
                 </div>
               )}
             </div>
@@ -133,95 +154,83 @@ export default function OrganizerDashboard() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "32px 24px 80px" }}>
-        {/* Header + hero */}
-        <div className="hero-row" style={{ marginBottom: 28 }}>
+      {/* Main content */}
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "32px 24px 60px" }}>
+        {/* Header summary */}
+        <div className="hero-row" style={{ marginBottom: 32 }}>
           <div>
-            <span style={{ fontSize: 12.5, fontWeight: 600, color: "#9B87F5", letterSpacing: "0.01em" }}>
-              Organizer dashboard
-            </span>
-            <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(24px, 4vw, 30px)", fontWeight: 600, margin: "6px 0 6px", letterSpacing: "-0.015em" }}>
-              Welcome back, Organizer
+            <div style={{ fontSize: 13, color: "#5B5F6D", marginBottom: 4 }}>ORGANIZER DASHBOARD</div>
+            <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 28, fontWeight: 700, margin: "0 0 6px" }}>
+              Sample Hack 2026
             </h1>
-            <p style={{ color: "#9A96AC", fontSize: 14.5, margin: 0 }}>Here's an overview of your hackathon event.</p>
+            <div style={{ fontSize: 13.5, color: "#9A96AC", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <Calendar size={14} color="#7C5CFC" /> Feb 26 – Mar 1, 2026
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <Clock size={14} color="#EAB308" /> Submissions close: Mar 1, 6:00 PM UTC
+              </span>
+              {currentUser && currentUser.orgId && (
+                <span style={{ background: "rgba(124,92,252,0.15)", color: "#B8A9FD", padding: "2px 8px", borderRadius: 4, fontSize: 12 }}>
+                  ID: {currentUser.orgId}
+                </span>
+              )}
+            </div>
           </div>
 
-          <div style={{
-            display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
-            background: "linear-gradient(135deg, #1B1440, #2A1D5C)",
-            border: "1px solid #2A2560", borderRadius: 14, padding: "16px 22px",
-          }}>
-            <div style={{ width: 46, height: 46, borderRadius: 11, background: "rgba(124,92,252,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Rocket size={20} color="#B8A9FD" />
-            </div>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 600 }}>Sample Hack 2027</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "#4ADE80", background: "rgba(74,222,128,0.15)", padding: "2px 8px", borderRadius: 20 }}>● LIVE</span>
-              </div>
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12.5, color: "#9A96AC" }}>
-                <span style={{ display: "flex", alignItems: "center", gap: 5 }}><Calendar size={13} /> Mar 1 – Mar 3, 2027</span>
-                <span style={{ display: "flex", alignItems: "center", gap: 5 }}><Clock size={13} /> Deadline Mar 1, 6:00 PM UTC</span>
-              </div>
-            </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button style={{
+              background: "#14161C", border: "1px solid #262A34", color: "#E8E6F0",
+              padding: "10px 16px", borderRadius: 9, fontSize: 13.5, fontWeight: 500,
+              cursor: "pointer", fontFamily: "Inter, sans-serif",
+            }}>
+              Export results CSV
+            </button>
+            <button style={{
+              background: "linear-gradient(135deg, #7C5CFC, #6344E7)", border: "none", color: "#FFFFFF",
+              padding: "10px 18px", borderRadius: 9, fontSize: 13.5, fontWeight: 600,
+              cursor: "pointer", fontFamily: "Inter, sans-serif", display: "flex", alignItems: "center", gap: 8,
+            }}>
+              Manage hackathon <ArrowRight size={15} />
+            </button>
           </div>
         </div>
 
-        {/* Stat cards */}
-        <div className="stat-grid" style={{ marginBottom: 20 }}>
-          <StatCard icon={Users} label="Total teams" value="40" sub="40 teams registered" />
-          <StatCard icon={FolderKanban} label="Total projects" value="41" sub="41 projects submitted" />
-          <StatCard icon={Gavel} label="Total judges" value="30" sub="30 judges assigned" />
-          <StatCard icon={Tag} label="Tracks" value="8" sub="8 active tracks" />
+        {/* 4 Stat Cards */}
+        <div className="stat-grid" style={{ marginBottom: 32 }}>
+          <StatCard icon={Users} label="Total teams" value="40" sub="100% submitted" />
+          <StatCard icon={FolderKanban} label="Projects" value="41" sub="1 multi-project team" />
+          <StatCard icon={Gavel} label="Judges" value="30" sub="Across 8 tracks" />
+          <StatCard icon={Tag} label="Tracks" value="8" sub="All tracks active" />
         </div>
 
-        <div className="main-grid" style={{ marginBottom: 20 }}>
-          {/* Event overview */}
+        {/* Middle row: Tracks & Progress */}
+        <div className="main-grid" style={{ marginBottom: 32 }}>
+          {/* Tracks overview */}
           <Panel>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-              <PanelHeading icon={Calendar} title="Event overview" />
-              <button style={{
-                display: "flex", alignItems: "center", gap: 6,
-                background: "transparent", border: "1px solid #3A3560", color: "#B8A9FD",
-                padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 500,
-                cursor: "pointer", fontFamily: "Inter, sans-serif",
-              }}>
-                View hackathon details <ArrowRight size={13} />
-              </button>
-            </div>
-
-            <div className="info-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 }}>
-              <MetaBlock label="Event name" value="Sample Hack 2027" />
-              <MetaBlock label="Event ID" value="evt_01" />
-              <MetaBlock label="Submission deadline" value="Mar 1, 2027 · 6:00 PM UTC" />
-            </div>
-
-            <p style={{ color: "#9A96AC", fontSize: 14, lineHeight: 1.65, margin: "0 0 22px" }}>
-              Sample Hack 2027 is a 48-hour hackathon designed to bring together creative thinkers,
-              problem solvers, and builders from around the world, tackling real-world challenges
-              across 8 tracks.
+            <PanelHeading icon={Tag} title="Tracks overview (8)" />
+            <p style={{ fontSize: 13, color: "#5B5F6D", margin: "6px 0 18px" }}>
+              Projects submitted per track for Sample Hack 2026.
             </p>
-
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: "#C7C4D6", marginBottom: 12 }}>Tracks (8)</div>
             <div className="track-grid">
-              {TRACKS.map(({ icon: Icon, label }) => (
-                <div key={label} style={{
-                  display: "flex", alignItems: "center", gap: 8, padding: "10px 12px",
-                  borderRadius: 9, border: "1px solid #262A34", background: "#14161C",
+              {TRACKS.map((t) => (
+                <div key={t.label} style={{
+                  background: "#0F1115", border: "1px solid #1D2029", borderRadius: 10,
+                  padding: "14px 12px", display: "flex", flexDirection: "column", gap: 8,
                 }}>
-                  <Icon size={14} color="#B8A9FD" />
-                  <span style={{ fontSize: 12.5, color: "#C7C4D6", fontWeight: 500 }}>{label}</span>
+                  <t.icon size={18} color="#7C5CFC" />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#E8E6F0", lineHeight: 1.3 }}>{t.label}</span>
                 </div>
               ))}
             </div>
           </Panel>
 
-          {/* Judging progress */}
+          {/* Scoring progress */}
           <Panel>
-            <PanelHeading icon={Gavel} title="Judging progress" />
-            <div style={{ display: "flex", alignItems: "center", gap: 22, marginBottom: 24, flexWrap: "wrap" }}>
+            <PanelHeading icon={Gavel} title="Scoring progress" />
+            <div style={{ display: "flex", alignItems: "center", gap: 20, margin: "16px 0 20px" }}>
               <RingStat percent={78} />
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4ADE80" }} />
                   <span style={{ fontSize: 15, fontWeight: 600 }}>32</span>

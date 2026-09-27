@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Zap, Plus, Gavel, ArrowRight, Flame, Calendar, Users, ChevronDown,
-  Code2, Trophy, Rocket, Menu, X,
+  Code2, Trophy, Rocket, Menu, X, LogOut, LayoutDashboard
 } from "lucide-react";
 
 const HACKATHONS = [
@@ -36,8 +36,38 @@ const HACKATHONS = [
 
 const NAV = ["Home", "Hackathons", "Projects", "About"];
 
-export default function HackFlowHome() {
+export default function HackFlowHome({ onNavigate, user, onLogout }) {
   const [navOpen, setNavOpen] = useState(false);
+  const [userDropdown, setUserDropdown] = useState(false);
+  const [currentUser, setCurrentUser] = useState(user);
+
+  useEffect(() => {
+    if (user) {
+      setCurrentUser(user);
+    } else {
+      const saved = localStorage.getItem("hackflow_user");
+      if (saved) {
+        try { setCurrentUser(JSON.parse(saved)); } catch(e){}
+      } else {
+        setCurrentUser(null);
+      }
+    }
+  }, [user]);
+
+  const handleCreateHackathonClick = () => {
+    if (currentUser) {
+      if (onNavigate) onNavigate("Organizer Dashboard");
+    } else {
+      if (onNavigate) onNavigate("Organizer Registration");
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("hackflow_user");
+    setCurrentUser(null);
+    setUserDropdown(false);
+    if (onLogout) onLogout();
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "#0B0C10", fontFamily: "Inter, sans-serif", color: "#E8E6F0" }}>
@@ -83,7 +113,7 @@ export default function HackFlowHome() {
       {/* Nav */}
       <div style={{ borderBottom: "1px solid #1D2029" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "16px 24px", display: "flex", alignItems: "center", gap: 32 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer" }} onClick={() => onNavigate && onNavigate("HackFlow Home")}>
             <div style={{ width: 30, height: 30, borderRadius: 7, background: "#7C5CFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Zap size={16} color="#0B0C10" strokeWidth={2.5} fill="#0B0C10" />
             </div>
@@ -94,7 +124,7 @@ export default function HackFlowHome() {
 
           <div className="desktop-nav" style={{ gap: 28, flex: 1 }}>
             {NAV.map((item, i) => (
-              <a key={item} href="#" style={{
+              <a key={item} href="#" onClick={(e) => { e.preventDefault(); if (i === 0 && onNavigate) onNavigate("HackFlow Home"); }} style={{
                 color: i === 0 ? "#B8A9FD" : "#9A96AC", textDecoration: "none", fontSize: 14.5, fontWeight: 500,
                 borderBottom: i === 0 ? "2px solid #7C5CFC" : "2px solid transparent", paddingBottom: 18, marginBottom: -19,
               }}>
@@ -104,14 +134,65 @@ export default function HackFlowHome() {
           </div>
 
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14 }}>
-            <div className="desktop-nav" style={{
-              alignItems: "center", gap: 8, border: "1px solid #262A34", borderRadius: 9,
-              padding: "8px 14px", cursor: "pointer",
-            }}>
-              <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#262A34" }} />
-              <span style={{ fontSize: 13.5, color: "#C7C4D6" }}>Demo User</span>
-              <ChevronDown size={14} color="#5B5F6D" />
-            </div>
+            {currentUser ? (
+              <div style={{ position: "relative" }}>
+                <div
+                  onClick={() => setUserDropdown(!userDropdown)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8, border: "1px solid #7C5CFC", borderRadius: 9,
+                    padding: "8px 14px", cursor: "pointer", background: "rgba(124,92,252,0.12)"
+                  }}
+                >
+                  <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#7C5CFC", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFF", fontSize: 11, fontWeight: 700 }}>
+                    {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "O"}
+                  </div>
+                  <span style={{ fontSize: 13.5, color: "#E8E6F0", fontWeight: 600 }}>
+                    {currentUser.name || "Organizer"}
+                  </span>
+                  <ChevronDown size={14} color="#9A96AC" />
+                </div>
+
+                {userDropdown && (
+                  <div style={{
+                    position: "absolute", top: "115%", right: 0, width: 200, background: "#14161C",
+                    border: "1px solid #262A34", borderRadius: 10, padding: 8, zIndex: 100,
+                    boxShadow: "0 10px 25px rgba(0,0,0,0.5)"
+                  }}>
+                    <button
+                      onClick={() => { setUserDropdown(false); if (onNavigate) onNavigate("Organizer Dashboard"); }}
+                      style={{
+                        width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px",
+                        background: "none", border: "none", color: "#C7C4D6", fontSize: 13.5,
+                        cursor: "pointer", borderRadius: 6, textAlign: "left"
+                      }}
+                    >
+                      <LayoutDashboard size={15} color="#8A6EFC" /> Dashboard
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      style={{
+                        width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px",
+                        background: "none", border: "none", color: "#F87171", fontSize: 13.5,
+                        cursor: "pointer", borderRadius: 6, textAlign: "left", marginTop: 4
+                      }}
+                    >
+                      <LogOut size={15} /> Log Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={handleCreateHackathonClick}
+                style={{
+                  background: "linear-gradient(135deg, #8A6EFC, #6D4FE8)", color: "#FFF", border: "none",
+                  padding: "9px 16px", borderRadius: 9, fontSize: 13.5, fontWeight: 600, cursor: "pointer"
+                }}
+              >
+                Create Hackathons
+              </button>
+            )}
+
             <button
               className="mobile-toggle"
               onClick={() => setNavOpen((n) => !n)}
@@ -169,6 +250,7 @@ export default function HackFlowHome() {
                 border="#262A34"
                 title="Create a hackathon"
                 note="Set up your own hackathon and bring your ideas to life."
+                onClick={handleCreateHackathonClick}
               />
               <ActionCard
                 icon={Gavel}
@@ -210,11 +292,12 @@ export default function HackFlowHome() {
   );
 }
 
-function ActionCard({ icon: Icon, iconColor, bg, border, title, note }) {
+function ActionCard({ icon: Icon, iconColor, bg, border, title, note, onClick }) {
   return (
-    <div style={{
+    <div onClick={onClick} style={{
       background: bg, border: `1px solid ${border}`, borderRadius: 14, padding: "20px",
       cursor: "pointer", display: "flex", flexDirection: "column", gap: 14, minHeight: 150,
+      transition: "transform 0.15s ease, border-color 0.15s ease",
     }}>
       <div style={{ width: 36, height: 36, borderRadius: 9, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Icon size={17} color={iconColor} />

@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from "react";
-import { Rocket, Github, UploadCloud, Check, ArrowRight, X } from "lucide-react";
+import { Rocket, GitBranch, UploadCloud, Check, ArrowRight, X } from "lucide-react";
 
 const TRACKS = ["Hardware", "Sustainability", "Health & Safety", "Climate", "Accessibility", "Deep Tech"];
 
@@ -249,7 +249,7 @@ export default function SubmissionForm() {
             <label className="field-label">GitHub repository</label>
             <div style={{ display: "flex", alignItems: "center", background: "#14161C", border: "1px solid #262A34", borderRadius: 8, overflow: "hidden" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 12px", borderRight: "1px solid #262A34", height: 44, color: "#5B5F6D", fontSize: 14 }}>
-                <Github size={15} />
+                <GitBranch size={15} />
                 github.com/
               </div>
               <input
