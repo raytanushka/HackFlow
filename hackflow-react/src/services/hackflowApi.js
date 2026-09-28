@@ -86,13 +86,13 @@ function normalizeScore(score) {
    AUTH
 ------------------------------------------------------- */
 
-export async function login(email, password) {
+export async function login(email, id) {
   return request("/api/auth/login", {
     method: "POST",
 
     body: JSON.stringify({
       email,
-      password,
+      id,
     }),
   });
 }

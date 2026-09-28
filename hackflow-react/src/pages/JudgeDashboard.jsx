@@ -77,7 +77,7 @@ export default function JudgeDashboard() {
   const [projects, setProjects] = useState([]);
   const [scores, setScores] = useState([]);
   const [rubric, setRubric] = useState(null);
-  const [activeTrack, setActiveTrack] = useState(null);
+  const [activeTrack, setActiveTrack] = useState("trk_01");
   const [selectedProject, setSelectedProject] = useState(null);
   const [judgeTracks, setJudgeTracks] = useState([]);
 
@@ -128,17 +128,8 @@ const allTracks = Array.isArray(tracksData)
     ? tracksData.tracks
     : [];
 
-const normalizedJudgeTracks = (judgeData?.tracks || [])
-  .map((track) => {
-    // If backend already returned an object
-    if (typeof track === "object" && track !== null) {
-      return track;
-    }
-
-    // If backend returned only the track ID
-    return allTracks.find((t) => t.id === track);
-  })
-  .filter(Boolean);
+// All event tracks are available to the judge dashboard
+const normalizedJudgeTracks = allTracks;
 
 const normalizedJudge = {
   ...judgeData,
@@ -146,10 +137,11 @@ const normalizedJudge = {
 };
 
 setJudge(normalizedJudge);
+console.log("CURRENT LOGGED-IN JUDGE:", normalizedJudge);
 setJudgeTracks(normalizedJudgeTracks);
 
-if (normalizedJudgeTracks.length > 0) {
-  setActiveTrack(normalizedJudgeTracks[0].id);
+if (normalizedJudge.length > 0) {
+  setActiveTrack(normalizedJudge[0].id);
 } else {
   setActiveTrack("");
 }
@@ -210,15 +202,22 @@ const assignedTracks = useMemo(() => {
 }, [tracks, judge]);
 
   const trackProjects = useMemo(() => {
-    if (!activeTrack) {
-      return [];
-    }
+  if (!activeTrack) {
+    return [];
+  }
 
-    return projects.filter(
-      (project) =>
-        (project.track ?? project.track_id) === activeTrack
-    );
-  }, [projects, activeTrack]);
+  console.log("ACTIVE TRACK:", activeTrack);
+  console.log("ALL PROJECTS:", projects);
+
+  const filtered = projects.filter(
+    (project) =>
+      (project.track ?? project.track_id) === activeTrack
+  );
+
+  console.log("PROJECTS FOR ACTIVE TRACK:", filtered);
+
+  return filtered;
+}, [projects, activeTrack]);
 
   const scoredCount = useMemo(() => {
     return projects.filter((project) =>
@@ -893,47 +892,38 @@ const currentTrack =
                   No tracks assigned to this judge.
                 </div>
               ) : (
-                <div className="track-grid">
+<div className="track-grid">
   {judgeTracks.map((track) => {
     const trackId =
       typeof track === "string"
         ? track
         : track?.id;
 
-    const trackName =
-      typeof track === "string"
-        ? (
-            tracks.find((t) => t.id === track)?.name ||
-            track
-          )
-        : track?.name || "Unknown Track";
-
     if (!trackId) return null;
 
     const Icon =
       TRACK_ICONS[trackId] || Code2;
 
-    const trackProjectCount =
-      projects.filter(
-        (project) =>
-          (project.track ?? project.track_id) === trackId
-      ).length;
+    const trackName =
+      typeof track === "string"
+        ? tracks.find((t) => t.id === track)?.name || track
+        : track?.name || "Unknown Track";
 
-    const scored =
-      projects.filter(
-        (project) =>
-          (project.track ?? project.track_id) === trackId &&
-          scoreMap.has(project.id)
-      ).length;
+    const trackProjects = projects.filter(
+      (project) =>
+        (project.track ?? project.track_id) === trackId
+    );
+
+    const trackProjectCount =
+      trackProjects.length;
+
+    const scored = trackProjects.filter(
+      (project) => scoreMap.has(project.id)
+    ).length;
 
     const active =
       trackId === activeTrack;
-    
-console.log("=== JUDGE TRACK DEBUG ===");
-console.log("judgeTracks:", judgeTracks);
-console.log("tracks:", tracks);
-console.log("activeTrack:", activeTrack);
-console.log("projects:", projects);
+
     return (
       <button
         key={trackId}
@@ -953,6 +943,7 @@ console.log("projects:", projects);
             ? "rgba(124,92,252,0.12)"
             : "#14161C",
           color: "#E8E6F0",
+          width: "100%",
         }}
       >
         <div
@@ -999,6 +990,7 @@ console.log("projects:", projects);
     );
   })}
 </div>
+
               )}
             </Panel>
 
@@ -1129,12 +1121,9 @@ console.log("projects:", projects);
                                 AVATAR_COLORS.length
                             ];
 
-                          const memberCount =
-                            Array.isArray(team?.members)
-                              ? team.members.length
-                              : Number(
-                                  team?.members || 0
-                                );
+                          const memberCount = Number(
+  team?.member_count || 0
+);
 
                           return (
                             <tr key={project.id}>

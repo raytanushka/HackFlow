@@ -73,11 +73,8 @@ router.get("/projects", requireRole("judge"), (req, res) => {
         ON t.id = p.track_id
       JOIN teams tm
         ON tm.id = p.team_id
-      JOIN judge_assignments ja
-        ON ja.track_id = p.track_id
-      WHERE ja.judge_id = ?
       ORDER BY t.name, p.title
-    `).all(req.user.id);
+    `).all();
 
     res.json(projects);
   } catch (error) {

@@ -6,6 +6,7 @@ import {
   Zap, User, Mail, CreditCard, ArrowRight, ChevronDown, Menu, X,
   ShieldCheck, Users, Star, HelpCircle, Trophy,
 } from "lucide-react";
+import { login } from "../services/hackflowApi";
 
 const NAV = ["Home", "Hackathons", "Projects", "About"];
 
@@ -34,11 +35,17 @@ export default function JudgeRegistration() {
   
 
   const canContinue = name.trim() && email.trim() && judgeId.trim();
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
   e.preventDefault();
 
   try {
-    // your existing registration API call
+    const result = await login(email, judgeId);
+
+    console.log("LOGIN RESULT:", result);
+
+    if (result?.user?.role !== "judge") {
+      throw new Error("This account is not a judge account.");
+    }
 
     setSubmitted(true);
 
@@ -47,8 +54,8 @@ export default function JudgeRegistration() {
     }, 1000);
 
   } catch (error) {
-    console.error(error);
-    setError(error.message);
+    console.error("Judge login failed:", error);
+    alert(error.message || "Invalid judge credentials");
   }
 };
 
@@ -229,9 +236,9 @@ export default function JudgeRegistration() {
                   </div>
                 </Field>
 
-                <button
-                  disabled={!canContinue}
-                  onClick={() => canContinue && setSubmitted(true)}
+<button
+  disabled={!canContinue}
+  onClick={handleSubmit}
                   style={{
                     width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                     background: canContinue ? "linear-gradient(135deg, #8A6EFC, #6D4FE8)" : "#262A34",

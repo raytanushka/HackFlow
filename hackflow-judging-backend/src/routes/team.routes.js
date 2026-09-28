@@ -4,6 +4,7 @@ import { db } from "../db/database.js";
 const router = express.Router();
 
 // Get all teams
+// Get all teams
 router.get("/", (_req, res) => {
   try {
     const teams = db.prepare(`
@@ -19,7 +20,25 @@ router.get("/", (_req, res) => {
       ORDER BY t.name
     `).all();
 
-    res.json(teams);
+    const getMembers = db.prepare(`
+      SELECT
+        u.id,
+        u.name,
+        u.email,
+        u.role
+      FROM team_members tm
+      JOIN users u
+        ON u.email = tm.email
+      WHERE tm.team_id = ?
+      ORDER BY u.name
+    `);
+
+    const teamsWithMembers = teams.map((team) => ({
+      ...team,
+      members: getMembers.all(team.id),
+    }));
+
+    res.json(teamsWithMembers);
   } catch (error) {
     console.error("Failed to load teams:", error);
     res.status(500).json({
