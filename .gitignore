@@ -4,6 +4,11 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
+# Python virtual environments
+.venv/
+venv/
+env/
+
 # Environment variables
 .env
 

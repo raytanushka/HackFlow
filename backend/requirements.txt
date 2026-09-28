@@ -1,1 +1,9 @@
-# Backend requirements placeholder
+fastapi<0.100.0
+pydantic<2.0.0
+uvicorn
+starlette
+sqlalchemy
+email-validator
+dnspython
+psycopg2-binary
+psycopg[binary]

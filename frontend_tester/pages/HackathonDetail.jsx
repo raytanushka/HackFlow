@@ -179,7 +179,12 @@ export default function HackathonDetail({ onNavigate, eventId = "evt_smart_hack_
 
   const meta = EVENT_METADATA[eventId] || {};
   const isFixtureClosed = dbEvent ? !dbEvent.is_open : (eventId === "evt_01" || meta.isClosed);
-  const eventName = name || (dbEvent && dbEvent.name) || meta.name || (isFixtureClosed ? "Sample Hack 2026" : "Smart Hack 2027");
+  const isGenericDefault = name === "Smart Hack 2027" || name === "Sample Hack 2027";
+  const eventName = (dbEvent && dbEvent.name)
+    || (eventId === "evt_fintech" ? "FinTech Buildathon" : (eventId === "evt_01" ? "Sample Hack 2026" : null))
+    || (!isGenericDefault && name ? name : null)
+    || meta.name
+    || (isFixtureClosed ? "Sample Hack 2026" : "Smart Hack 2027");
   const eventStatus = (dbEvent && (dbEvent.is_open ? "Live" : "Closed")) || meta.status || (isFixtureClosed ? "Closed" : "Live");
   const eventDates = meta.dates || (isFixtureClosed ? "1 Mar 2026 (Closed)" : (dbEvent ? "Active – Submissions Open" : "Mar 1, 2027 – Mar 3, 2027"));
   const eventDesc = (dbEvent && dbEvent.description) || meta.desc || (isFixtureClosed

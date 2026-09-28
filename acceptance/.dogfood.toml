@@ -1,1 +1,13 @@
-# Dogfood TOML configuration placeholder
+[portal]
+base_url = "http://localhost:8000"
+
+[tiers]
+claimed = ["T1"]
+pitch = "HackFlow hackathon management platform"
+
+[auth]
+participant = "Cookie: session=session_prt_hackflow_2026_token"
+
+[routes]
+gallery = "/projects"
+submit = "/projects/new"
