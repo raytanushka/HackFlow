@@ -3,7 +3,7 @@ import {
   Rocket, Bell, ChevronDown, Users, FolderKanban, Gavel, Tag,
   Calendar, Clock, ArrowRight, Code2, BarChart3, Accessibility, Shield,
   Leaf, HeartPulse, BookOpen, Cpu, Activity, UserPlus, ClipboardCheck,
-  UserCheck, AlertCircle, Home, LogOut
+  UserCheck, AlertCircle, Home, LogOut, Download, Loader2, Check
 } from "lucide-react";
 
 const TRACKS = [
@@ -42,10 +42,69 @@ const ACTIVITY = [
 
 export default function OrganizerDashboard({ user, onNavigate, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState(null);
   const currentUser = user || (localStorage.getItem("hackflow_user") ? JSON.parse(localStorage.getItem("hackflow_user")) : null);
+
+  const handleExportCSV = async () => {
+    if (exporting) return;
+    setExporting(true);
+    setExportMessage(null);
+
+    try {
+      const token = localStorage.getItem("hackflow_token");
+      const headers = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const res = await fetch("http://localhost:8000/api/export.csv", {
+        method: "GET",
+        headers,
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        let msg = "Failed to export results CSV.";
+        try {
+          const errData = await res.json();
+          if (errData.detail) msg = errData.detail;
+        } catch (_) {}
+
+        if (res.status === 401) {
+          msg = "Authentication required. Please sign in as an organizer.";
+        } else if (res.status === 403) {
+          msg = "Access restricted. Only organizers can export judging results.";
+        }
+        setExportMessage({ type: "error", text: msg });
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "hackflow-export.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      setExportMessage({ type: "success", text: "Results CSV downloaded successfully!" });
+      setTimeout(() => setExportMessage(null), 5000);
+    } catch (err) {
+      setExportMessage({ type: "error", text: "Network error communicating with HackFlow server." });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("hackflow_user");
+    localStorage.removeItem("hackflow_token");
+    localStorage.removeItem("hackflow_participant");
+    localStorage.removeItem("hackflow_registered");
+    localStorage.removeItem("hackflow_organizer_registered");
     if (onLogout) onLogout();
     if (onNavigate) onNavigate("HackFlow Home");
   };
@@ -179,12 +238,34 @@ export default function OrganizerDashboard({ user, onNavigate, onLogout }) {
           </div>
 
           <div style={{ display: "flex", gap: 10 }}>
-            <button style={{
-              background: "#14161C", border: "1px solid #262A34", color: "#E8E6F0",
-              padding: "10px 16px", borderRadius: 9, fontSize: 13.5, fontWeight: 500,
-              cursor: "pointer", fontFamily: "Inter, sans-serif",
-            }}>
-              Export results CSV
+            <button
+              onClick={handleExportCSV}
+              disabled={exporting}
+              style={{
+                background: "#14161C",
+                border: "1px solid #262A34",
+                color: exporting ? "#9A96AC" : "#E8E6F0",
+                padding: "10px 16px",
+                borderRadius: 9,
+                fontSize: 13.5,
+                fontWeight: 500,
+                cursor: exporting ? "not-allowed" : "pointer",
+                fontFamily: "Inter, sans-serif",
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+                transition: "all 0.15s ease"
+              }}
+            >
+              {exporting ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" /> Exporting...
+                </>
+              ) : (
+                <>
+                  <Download size={15} color="#7C5CFC" /> Export results CSV
+                </>
+              )}
             </button>
             <button style={{
               background: "linear-gradient(135deg, #7C5CFC, #6344E7)", border: "none", color: "#FFFFFF",
@@ -195,6 +276,24 @@ export default function OrganizerDashboard({ user, onNavigate, onLogout }) {
             </button>
           </div>
         </div>
+
+        {exportMessage && (
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "12px 16px",
+            borderRadius: 8,
+            marginBottom: 24,
+            fontSize: 13.5,
+            background: exportMessage.type === "success" ? "rgba(74,222,128,0.1)" : "rgba(248,113,113,0.1)",
+            border: `1px solid ${exportMessage.type === "success" ? "rgba(74,222,128,0.3)" : "rgba(248,113,113,0.3)"}`,
+            color: exportMessage.type === "success" ? "#4ADE80" : "#F87171"
+          }}>
+            {exportMessage.type === "success" ? <Check size={16} /> : <AlertCircle size={16} />}
+            <span>{exportMessage.text}</span>
+          </div>
+        )}
 
         {/* 4 Stat Cards */}
         <div className="stat-grid" style={{ marginBottom: 32 }}>
@@ -275,7 +374,14 @@ export default function OrganizerDashboard({ user, onNavigate, onLogout }) {
           <Panel>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
               <PanelHeading icon={Users} title="Recent projects" />
-              <a href="#" style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "#B8A9FD", textDecoration: "none" }}>
+              <a
+                href="/organizer/projects"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (onNavigate) onNavigate("Organizer Projects");
+                }}
+                style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "#B8A9FD", textDecoration: "none", cursor: "pointer" }}
+              >
                 View all <ArrowRight size={13} />
               </a>
             </div>

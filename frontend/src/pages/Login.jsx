@@ -206,7 +206,7 @@ export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialR
           }}>
             <button
               type="button"
-              onClick={() => { setRole("participant"); setError(""); }}
+              onClick={() => { setRole("participant"); setEmail(""); setOrganizerId(""); setError(""); }}
               style={{
                 padding: "8px 12px", borderRadius: 7, border: "none", fontSize: 13.5, fontWeight: 600,
                 cursor: "pointer", transition: "all 0.15s ease",
@@ -218,7 +218,7 @@ export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialR
             </button>
             <button
               type="button"
-              onClick={() => { setRole("organizer"); setError(""); }}
+              onClick={() => { setRole("organizer"); setEmail(""); setOrganizerId(""); setError(""); }}
               style={{
                 padding: "8px 12px", borderRadius: 7, border: "none", fontSize: 13.5, fontWeight: 600,
                 cursor: "pointer", transition: "all 0.15s ease",
@@ -302,6 +302,7 @@ export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialR
                     value={organizerId}
                     onChange={(e) => setOrganizerId(e.target.value)}
                     placeholder="e.g. org_01"
+                    autoComplete="off"
                     disabled={loading}
                   />
                 </div>

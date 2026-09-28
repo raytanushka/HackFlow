@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Rocket, Zap, Users, Trophy, ArrowRight, HelpCircle,
-  User, Mail, CreditCard, Calendar, UserCircle, Code2, ArrowLeft
+  User, Mail, CreditCard, Calendar, UserCircle, Code2, ArrowLeft, AlertCircle
 } from "lucide-react";
 
 function useWindowWidth() {
@@ -15,40 +15,22 @@ function useWindowWidth() {
   return width;
 }
 
-export default function OrganizerRegistration({ onRegistrationSuccess, onNavigate, user }) {
+export default function OrganizerRegistration({ onRegistrationSuccess, onNavigate }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [orgId, setOrgId] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const width = useWindowWidth();
-
-  useEffect(() => {
-    const saved = localStorage.getItem("hackflow_user");
-    if (saved) {
-      try {
-        const u = JSON.parse(saved);
-        if (u.name) setName(u.name);
-        if (u.email) setEmail(u.email);
-        if (u.orgId) setOrgId(u.orgId);
-      } catch(e){}
-    }
-  }, []);
 
   const canProceed = name.trim() && email.trim() && orgId.trim();
 
-  const handleProceed = async () => {
-    if (!canProceed) return;
+  const handleProceed = async (e) => {
+    e?.preventDefault();
+    if (!canProceed || loading) return;
     setLoading(true);
-
-    const userData = {
-      name: name.trim(),
-      email: email.trim(),
-      orgId: orgId.trim(),
-      role: "organizer"
-    };
-
-    localStorage.setItem("hackflow_user", JSON.stringify(userData));
+    setError("");
 
     try {
       const res = await fetch("http://localhost:8000/api/auth/register-organizer", {
@@ -61,26 +43,38 @@ export default function OrganizerRegistration({ onRegistrationSuccess, onNavigat
           org_id: orgId.trim()
         })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.detail || "Registration failed");
+        setError(data.detail || data.message || "Registration failed. Please check your information.");
         setLoading(false);
         return;
       }
+
+      const userData = {
+        id: data.user?.id,
+        name: data.user?.name || name.trim(),
+        email: data.user?.email || email.trim(),
+        orgId: data.user?.org_id || orgId.trim(),
+        role: "organizer",
+        token: data.token
+      };
+
+      // Only persist authenticated session upon successful registration
+      localStorage.setItem("hackflow_user", JSON.stringify(userData));
       if (data.token) {
         localStorage.setItem("hackflow_token", data.token);
       }
-      localStorage.setItem("hackflow_registered", "true");
-      localStorage.setItem("hackflow_organizer_registered", "true");
+
+      setLoading(false);
+      setSubmitted(true);
+
+      if (onRegistrationSuccess) {
+        onRegistrationSuccess(userData);
+      }
     } catch (e) {
-      console.log("Backend offline or local demo mode", e);
-    }
-
-    setLoading(false);
-    setSubmitted(true);
-
-    if (onRegistrationSuccess) {
-      onRegistrationSuccess(userData);
+      console.error("Organizer registration error:", e);
+      setError("Network error communicating with HackFlow server. Please try again.");
+      setLoading(false);
     }
   };
 
@@ -204,40 +198,76 @@ export default function OrganizerRegistration({ onRegistrationSuccess, onNavigat
                   </div>
                 </div>
 
-                <Field label="Full name" required>
-                  <div style={{ position: "relative" }}>
-                    <User size={16} className="field-icon" />
-                    <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter your full name" />
+                {error && (
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    background: "rgba(248, 113, 113, 0.1)",
+                    border: "1px solid rgba(248, 113, 113, 0.3)",
+                    borderRadius: 8, padding: "12px 14px",
+                    color: "#F87171", fontSize: 13.5, marginBottom: 20
+                  }}>
+                    <AlertCircle size={18} style={{ flexShrink: 0 }} />
+                    <div>{error}</div>
                   </div>
-                </Field>
+                )}
 
-                <Field label="Email address" required>
-                  <div style={{ position: "relative" }}>
-                    <Mail size={16} className="field-icon" />
-                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-                  </div>
-                </Field>
+                <form onSubmit={handleProceed}>
+                  <Field label="Full name" required>
+                    <div style={{ position: "relative" }}>
+                      <User size={16} className="field-icon" />
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Enter your full name"
+                        autoComplete="name"
+                        disabled={loading}
+                      />
+                    </div>
+                  </Field>
 
-                <Field label="Organizer ID" required>
-                  <div style={{ position: "relative" }}>
-                    <CreditCard size={16} className="field-icon" />
-                    <input value={orgId} onChange={(e) => setOrgId(e.target.value)} placeholder="Enter your organizer ID (e.g. org_01)" />
-                  </div>
-                </Field>
+                  <Field label="Email address" required>
+                    <div style={{ position: "relative" }}>
+                      <Mail size={16} className="field-icon" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        autoComplete="email"
+                        disabled={loading}
+                      />
+                    </div>
+                  </Field>
 
-                <button
-                  disabled={!canProceed || loading}
-                  onClick={handleProceed}
-                  style={{
-                    width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                    background: canProceed ? "linear-gradient(135deg, #8A6EFC, #6D4FE8)" : "#262A34",
-                    color: canProceed ? "#FFFFFF" : "#5B5F6D",
-                    border: "none", padding: "14px", borderRadius: 10, fontSize: 15, fontWeight: 600,
-                    cursor: canProceed ? "pointer" : "not-allowed", fontFamily: "Inter, sans-serif", marginTop: 6,
-                  }}
-                >
-                  {loading ? "Registering..." : "Proceed & Access Dashboard"} <ArrowRight size={16} />
-                </button>
+                  <Field label="Organizer ID" required>
+                    <div style={{ position: "relative" }}>
+                      <CreditCard size={16} className="field-icon" />
+                      <input
+                        type="text"
+                        value={orgId}
+                        onChange={(e) => setOrgId(e.target.value)}
+                        placeholder="Enter your organizer ID (e.g. org_01)"
+                        autoComplete="off"
+                        disabled={loading}
+                      />
+                    </div>
+                  </Field>
+
+                  <button
+                    type="submit"
+                    disabled={!canProceed || loading}
+                    style={{
+                      width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                      background: canProceed ? "linear-gradient(135deg, #8A6EFC, #6D4FE8)" : "#262A34",
+                      color: canProceed ? "#FFFFFF" : "#5B5F6D",
+                      border: "none", padding: "14px", borderRadius: 10, fontSize: 15, fontWeight: 600,
+                      cursor: canProceed ? "pointer" : "not-allowed", fontFamily: "Inter, sans-serif", marginTop: 6,
+                    }}
+                  >
+                    {loading ? "Registering..." : "Proceed & Access Dashboard"} <ArrowRight size={16} />
+                  </button>
+                </form>
 
                 <div style={{ textAlign: "center", marginTop: 14, fontSize: 13.5, color: "#9A96AC" }}>
                   Already have an organizer account?{" "}

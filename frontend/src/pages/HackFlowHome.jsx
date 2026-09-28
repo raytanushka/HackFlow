@@ -58,14 +58,17 @@ export default function HackFlowHome({ onNavigate, user, onLogout }) {
   }, [user]);
 
   const handleCreateHackathonClick = () => {
+    if (currentUser && currentUser.role === "organizer") {
+      if (onNavigate) onNavigate("Organizer Dashboard");
+      return;
+    }
     const isRegistered = Boolean(
       localStorage.getItem("hackflow_registered") === "true" ||
       localStorage.getItem("hackflow_organizer_registered") === "true" ||
-      localStorage.getItem("hackflow_user") ||
-      currentUser
+      localStorage.getItem("hackflow_user")
     );
     if (isRegistered) {
-      if (onNavigate) onNavigate("Login");
+      if (onNavigate) onNavigate("Login", { role: "organizer" });
     } else {
       if (onNavigate) onNavigate("Organizer Registration");
     }
@@ -73,6 +76,10 @@ export default function HackFlowHome({ onNavigate, user, onLogout }) {
 
   const handleLogout = () => {
     localStorage.removeItem("hackflow_user");
+    localStorage.removeItem("hackflow_token");
+    localStorage.removeItem("hackflow_participant");
+    localStorage.removeItem("hackflow_registered");
+    localStorage.removeItem("hackflow_organizer_registered");
     setCurrentUser(null);
     setUserDropdown(false);
     if (onLogout) onLogout();

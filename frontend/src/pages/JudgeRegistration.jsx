@@ -180,21 +180,39 @@ export default function JudgeRegistration({ onNavigate }) {
                 <Field label="Full name" required>
                   <div style={{ position: "relative" }}>
                     <User size={16} className="field-icon" />
-                    <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter your full name" />
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Enter your full name"
+                      autoComplete="name"
+                    />
                   </div>
                 </Field>
 
                 <Field label="Email address" required>
                   <div style={{ position: "relative" }}>
                     <Mail size={16} className="field-icon" />
-                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      autoComplete="email"
+                    />
                   </div>
                 </Field>
 
                 <Field label="Judge ID" required>
                   <div style={{ position: "relative" }}>
                     <CreditCard size={16} className="field-icon" />
-                    <input value={judgeId} onChange={(e) => setJudgeId(e.target.value)} placeholder="Enter your judge ID" />
+                    <input
+                      type="text"
+                      value={judgeId}
+                      onChange={(e) => setJudgeId(e.target.value)}
+                      placeholder="Enter your judge ID"
+                      autoComplete="off"
+                    />
                   </div>
                 </Field>
 
