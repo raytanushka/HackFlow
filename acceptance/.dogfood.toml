@@ -10,4 +10,4 @@ participant = "Cookie: session=session_prt_hackflow_2026_token"
 
 [routes]
 gallery = "/projects"
-submit = "/projects/new"
+submit = "/api/events/evt_01/projects"
