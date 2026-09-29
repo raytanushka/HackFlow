@@ -8,6 +8,7 @@ from backend.app.api.projects import router as projects_router
 from backend.app.api.results import router as results_router
 from backend.app.api.voting import router as voting_router
 from backend.app.api.judging import router as judging_router
+from backend.app.api.teams import router as teams_router
 
 app = FastAPI(title="HackFlow API", version="1.0.0")
 
@@ -50,6 +51,7 @@ app.include_router(projects_router)
 app.include_router(results_router)
 app.include_router(voting_router)
 app.include_router(judging_router)
+app.include_router(teams_router)
 
 @app.get("/")
 def root():

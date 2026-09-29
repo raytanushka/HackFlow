@@ -84,12 +84,26 @@ export async function getEvent(eventId = "evt_01") {
 }
 
 export async function getTracks(eventId = "evt_01") {
-  return request(`/api/events/${eventId}/tracks`);
+  try {
+    return await request(`/api/events/${eventId}/tracks`);
+  } catch (err) {
+    try {
+      const evt = await getEvent(eventId);
+      return evt?.tracks || [];
+    } catch {
+      return [];
+    }
+  }
 }
 
 export async function getTeams() {
-  return request("/api/teams");
+  try {
+    return await request("/api/teams");
+  } catch {
+    return [];
+  }
 }
+
 
 export async function getTeam(teamId) {
   return request(`/api/teams/${teamId}`);

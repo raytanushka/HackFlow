@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Zap,
   Bell,
@@ -109,10 +109,7 @@ export default function JudgeDashboard({ user, onNavigate, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-  let cancelled = false;
-
-  async function loadDashboard() {
+  const loadDashboard = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -126,75 +123,64 @@ export default function JudgeDashboard({ user, onNavigate, onLogout }) {
         scoresData,
         rubricData,
       ] = await Promise.all([
-
-        
-        getEvent(),
-        getTracks(),
-        getTeams(),
+        getEvent().catch(() => ({ id: "evt_01", name: "HackFlow Hackathon", tracks: [] })),
+        getTracks().catch(() => []),
+        getTeams().catch(() => []),
         getJudge(),
         getJudgeProjects(),
-        getMyScores(),
-        getRubric(),
+        getMyScores().catch(() => []),
+        getRubric().catch(() => null),
       ]);
-
-      if (cancelled) return;
 
       setEvent(eventData);
       setTracks(tracksData);
       setTeams(teamsData);
-// Normalize assigned judge tracks
-const allTracks = Array.isArray(tracksData)
-  ? tracksData
-  : Array.isArray(tracksData?.tracks)
-    ? tracksData.tracks
-    : [];
 
-// All event tracks are available to the judge dashboard
-const normalizedJudgeTracks = allTracks;
+      // Normalize tracks from tracks endpoint or event detail
+      const allTracks = Array.isArray(tracksData) && tracksData.length > 0
+        ? tracksData
+        : Array.isArray(eventData?.tracks) && eventData.tracks.length > 0
+          ? eventData.tracks
+          : [];
 
-const normalizedJudge = {
-  ...judgeData,
-  tracks: normalizedJudgeTracks,
-};
+      // Judge assigned tracks
+      const assignedJudgeTracks = Array.isArray(judgeData?.tracks) && judgeData.tracks.length > 0
+        ? judgeData.tracks
+        : allTracks;
 
-setJudge(normalizedJudge);
-console.log("CURRENT LOGGED-IN JUDGE:", normalizedJudge);
-setJudgeTracks(normalizedJudgeTracks);
+      const normalizedJudge = {
+        ...judgeData,
+        tracks: assignedJudgeTracks,
+      };
 
-if (Array.isArray(judgeData?.tracks) && judgeData.tracks.length > 0) {
-  setActiveTrack(judgeData.tracks[0].id);
-} else if (normalizedJudgeTracks.length > 0) {
-  setActiveTrack(normalizedJudgeTracks[0].id);
-} else {
-  setActiveTrack("");
-}
+      setJudge(normalizedJudge);
+      setJudgeTracks(allTracks);
 
-setProjects(projectsData);
-      console.log("PROJECTS STATE DATA:", projectsData);
-      setScores(scoresData);
+      if (assignedJudgeTracks.length > 0) {
+        setActiveTrack(assignedJudgeTracks[0].id);
+      } else if (allTracks.length > 0) {
+        setActiveTrack(allTracks[0].id);
+      } else {
+        setActiveTrack("");
+      }
+
+      setProjects(projectsData || []);
+      setScores(scoresData || []);
       setRubric(rubricData);
     } catch (err) {
       console.error("Judge dashboard loading error:", err);
-
-      if (!cancelled) {
-        setError(
-          err?.message ||
-          "Failed to load Judge Dashboard."
-        );
-      }
+      setError(
+        err?.message ||
+        "Failed to load Judge Dashboard."
+      );
     } finally {
-      if (!cancelled) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
-  }
+  }, []);
 
-  loadDashboard();
-
-  return () => {
-    cancelled = true;
-  };
-}, []);
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
 
 
   const scoreMap = useMemo(() => {
@@ -376,7 +362,11 @@ const currentTrack =
 
           <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
             <button
-              onClick={() => onNavigate ? onNavigate("Judge Registration") : navigate("/judge/register")}
+              onClick={() => {
+                if (onLogout) onLogout();
+                if (onNavigate) onNavigate("Judge Registration");
+                else navigate("/judge/register");
+              }}
               style={{
                 background: "linear-gradient(135deg, #8A6EFC, #6D4FE8)",
                 border: "none",
@@ -391,7 +381,7 @@ const currentTrack =
               Log in as Judge
             </button>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => loadDashboard()}
               style={{
                 background: "#1B1E28",
                 border: "1px solid #2E3245",
@@ -404,6 +394,21 @@ const currentTrack =
               }}
             >
               Retry
+            </button>
+            <button
+              onClick={() => onNavigate ? onNavigate("HackFlow Home") : navigate("/")}
+              style={{
+                background: "#14161C",
+                border: "1px solid #2A2E39",
+                color: "#9A96AC",
+                padding: "10px 16px",
+                borderRadius: 8,
+                cursor: "pointer",
+                fontWeight: 500,
+                fontSize: 13.5
+              }}
+            >
+              Back to Home
             </button>
           </div>
         </div>

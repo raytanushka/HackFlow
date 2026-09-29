@@ -36,14 +36,7 @@ export default function JudgeRegistration({
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  // If already authenticated as a judge, automatically redirect to Judge Dashboard
-  useEffect(() => {
-    if (user && (user.role === "judge" || user.role === "organizer" || user.role === "admin")) {
-      if (onNavigate) {
-        onNavigate("Judge Dashboard");
-      }
-    }
-  }, [user, onNavigate]);
+  // Active judge session banner is rendered in the UI without trapping navigation
 
   const canContinue = isLoginMode
     ? Boolean(email.trim() || judgeId.trim())
@@ -394,6 +387,65 @@ export default function JudgeRegistration({
             background: "#14161C", border: "1px solid #1D2029", borderRadius: 16,
             padding: "32px", width: "100%",
           }}>
+            {user && (user.role === "judge" || user.role === "organizer") && (
+              <div style={{
+                background: "rgba(124, 92, 252, 0.12)",
+                border: "1px solid rgba(155, 135, 245, 0.35)",
+                borderRadius: 12,
+                padding: "14px 18px",
+                marginBottom: 24,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 16,
+                flexWrap: "wrap",
+              }}>
+                <div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: "#E8E6F0" }}>
+                    Signed in as {user.name} ({user.id || user.email})
+                  </div>
+                  <div style={{ fontSize: 12, color: "#9A96AC", marginTop: 2 }}>
+                    Active role: <span style={{ color: "#B8A9FD", textTransform: "capitalize" }}>{user.role}</span>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => onNavigate && onNavigate("Judge Dashboard")}
+                    style={{
+                      background: "linear-gradient(135deg, #8A6EFC, #6D4FE8)",
+                      color: "#FFFFFF",
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "8px 14px",
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      cursor: "pointer"
+                    }}
+                  >
+                    Go to Dashboard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onLogout) onLogout();
+                    }}
+                    style={{
+                      background: "transparent",
+                      color: "#F87171",
+                      border: "1px solid rgba(248, 113, 113, 0.4)",
+                      borderRadius: 8,
+                      padding: "8px 12px",
+                      fontSize: 12.5,
+                      fontWeight: 500,
+                      cursor: "pointer"
+                    }}
+                  >
+                    Log Out
+                  </button>
+                </div>
+              </div>
+            )}
             {submitted ? (
               <SuccessState name={name} onNavigate={onNavigate} />
             ) : (

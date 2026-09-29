@@ -4,8 +4,9 @@ from sqlalchemy.orm import Session
 
 from backend.app.db.database import get_db
 from backend.app.core.security import get_current_session
-from backend.app.schemas.event import EventResponse, EventDetailResponse
+from backend.app.schemas.event import EventResponse, EventDetailResponse, TrackResponse
 from backend.app.schemas.project import ProjectCreateRequest, ProjectResponse
+from backend.app.models.track import Track
 from backend.app.services.event import EventService
 from backend.app.services.project import ProjectService
 
@@ -26,6 +27,13 @@ def get_event(event_id: str, db: Session = Depends(get_db)):
             detail=f"Event '{event_id}' not found"
         )
     return detail
+
+@router.get("/{event_id}/tracks", response_model=List[TrackResponse])
+def get_event_tracks(event_id: str, db: Session = Depends(get_db)):
+    """List tracks for a specific event."""
+    tracks = db.query(Track).filter(Track.event_id == event_id).order_by(Track.id).all()
+    return tracks
+
 
 @router.post("/{event_id}/projects", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
 def submit_project_to_event(
