@@ -163,9 +163,42 @@ const EVENT_METADATA = {
 
 export default function HackathonDetail({ onNavigate, eventId = "evt_smart_hack_2027", name, user }) {
   const [joined, setJoined] = useState(false);
+  const [joinLoading, setJoinLoading] = useState(false);
+  const [joinError, setJoinError] = useState("");
   const [dbEvent, setDbEvent] = useState(null);
   const [participantStatus, setParticipantStatus] = useState(null);
   const isParticipant = Boolean(user && (user.role === "participant" || user.role === "organizer"));
+
+  const handleJoinHackathon = async () => {
+    if (joinLoading) return;
+    setJoinLoading(true);
+    setJoinError("");
+    try {
+      const token = localStorage.getItem("hackflow_token") || (user && user.token);
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(`http://localhost:8000/api/events/${eventId}/join`, {
+        method: "POST",
+        headers,
+        credentials: "include",
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail || "Failed to join hackathon.");
+      }
+
+      setJoined(true);
+      if (onNavigate) {
+        onNavigate("Participant Dashboard", { eventId, name: eventName });
+      }
+    } catch (err) {
+      setJoinError(err.message || "Failed to join hackathon.");
+    } finally {
+      setJoinLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (eventId) {
@@ -252,12 +285,17 @@ export default function HackathonDetail({ onNavigate, eventId = "evt_smart_hack_
       {/* Top bar */}
       <div style={{ borderBottom: "1px solid #1D2029", padding: "18px 24px" }}>
         <div style={{ maxWidth: 1080, margin: "0 auto", display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 7, background: "#7C5CFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Rocket size={16} color="#0F1115" strokeWidth={2.5} />
+          <div
+            onClick={() => onNavigate && onNavigate("HackFlow Home")}
+            style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
+          >
+            <div style={{ width: 30, height: 30, borderRadius: 7, background: "#7C5CFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Rocket size={16} color="#0F1115" strokeWidth={2.5} />
+            </div>
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 16, letterSpacing: "-0.01em" }}>
+              HackFlow
+            </span>
           </div>
-          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 16, letterSpacing: "-0.01em" }}>
-            HackFlow
-          </span>
           <span style={{
             marginLeft: 12, fontSize: 12.5,
             color: isFixtureClosed ? "#F87171" : "#4ADE80",
@@ -268,7 +306,7 @@ export default function HackathonDetail({ onNavigate, eventId = "evt_smart_hack_
           </span>
 
           <button
-            onClick={() => onNavigate && onNavigate("HackFlow Home")}
+            onClick={() => onNavigate && onNavigate("Hackathons Listing")}
             style={{
               marginLeft: "auto", background: "none", border: "none",
               color: "#9A96AC", cursor: "pointer", fontSize: 13.5
@@ -467,12 +505,20 @@ export default function HackathonDetail({ onNavigate, eventId = "evt_smart_hack_
                 </div>
               )}
 
+              {joinError && (
+                <div style={{
+                  background: "rgba(239, 68, 68, 0.12)", border: "1px solid rgba(239, 68, 68, 0.3)",
+                  borderRadius: 8, padding: "10px 14px", color: "#FCA5A5", fontSize: 13,
+                  marginBottom: 14,
+                }}>
+                  {joinError}
+                </div>
+              )}
+
               <button
+                disabled={isFixtureClosed || joinLoading}
                 onClick={() => {
-                  if (isFixtureClosed) {
-                    if (onNavigate) onNavigate("Submission Form", { eventId, name: eventName });
-                    return;
-                  }
+                  if (isFixtureClosed) return;
 
                   if (!isParticipant) {
                     if (onNavigate) {
@@ -480,38 +526,37 @@ export default function HackathonDetail({ onNavigate, eventId = "evt_smart_hack_
                         role: "participant",
                         eventId,
                         name: eventName,
-                        redirectTo: "Submission Form"
+                        redirectTo: "Hackathon Detail"
                       });
                     }
                     return;
                   }
 
-                  if (participantStatus?.team) {
+                  if (participantStatus?.team || joined) {
                     if (onNavigate) {
                       onNavigate("Participant Dashboard", { eventId, name: eventName });
                     }
                     return;
                   }
 
-                  setJoined(true);
-                  if (onNavigate) {
-                    onNavigate("Submission Form", { eventId, name: eventName });
-                  }
+                  handleJoinHackathon();
                 }}
                 style={{
                   width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  background: isFixtureClosed ? "#313645" : (isParticipant ? "#7C5CFC" : "linear-gradient(135deg, #7C5CFC, #6366F1)"),
-                  color: isFixtureClosed ? "#C7C4D6" : "#FFFFFF",
+                  background: isFixtureClosed ? "#262A34" : (isParticipant ? (participantStatus?.team || joined ? "#22A45D" : "#7C5CFC") : "linear-gradient(135deg, #7C5CFC, #6366F1)"),
+                  color: isFixtureClosed ? "#7C8092" : "#FFFFFF",
                   border: "none", padding: "13px", borderRadius: 9, fontSize: 14.5, fontWeight: 600,
-                  cursor: "pointer", fontFamily: "Inter, sans-serif", marginBottom: 20,
-                  boxShadow: !isFixtureClosed && !isParticipant ? "0 4px 14px rgba(124,92,252,0.3)" : "none"
+                  cursor: isFixtureClosed || joinLoading ? "not-allowed" : "pointer", fontFamily: "Inter, sans-serif", marginBottom: 20,
+                  boxShadow: !isFixtureClosed ? "0 4px 14px rgba(124,92,252,0.3)" : "none"
                 }}
               >
                 {isFixtureClosed
-                  ? "Proceed to Submission (Closed)"
+                  ? "Submissions Closed"
                   : !isParticipant
                     ? "Log in as Participant to Join"
-                    : (participantStatus?.team ? "View Participant Dashboard" : (joined ? "Go to Submission Form" : "Join and Confirm"))}
+                    : (participantStatus?.team || joined
+                        ? "Open Dashboard"
+                        : (joinLoading ? "Joining Hackathon..." : "Join Hackathon"))}
                 <ArrowRight size={15} />
               </button>
 

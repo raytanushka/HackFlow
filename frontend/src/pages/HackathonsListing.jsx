@@ -1,14 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Zap, Search, Filter, ChevronDown, Calendar, Building2, ArrowRight,
   ArrowLeft, Menu, X, CalendarDays, Brain, Leaf, TrendingUp, HeartPulse,
   Lightbulb, GraduationCap, Lock, LayoutDashboard,
 } from "lucide-react";
 
-const NAV = ["Home", "Hackathons", "Projects", "About"];
-
-const HACKATHONS = [
+const DEFAULT_HACKATHONS = [
   {
+    id: "evt_smart_hack_2027",
     tag: "Featured", tagBg: "#2E2560", tagColor: "#B8A9FD",
     name: "Smart Hack 2027",
     host: "Hosted by HackFlow",
@@ -21,6 +20,7 @@ const HACKATHONS = [
     closed: false,
   },
   {
+    id: "evt_greentech",
     tag: "Environment", tagBg: "#173A28", tagColor: "#4ADE80",
     name: "Green Tech Hackathon",
     host: "Hosted by XYZ University",
@@ -33,6 +33,7 @@ const HACKATHONS = [
     closed: false,
   },
   {
+    id: "evt_fintech",
     tag: "Web", tagBg: "#173047", tagColor: "#60A5FA",
     name: "FinTech Buildathon",
     host: "Hosted by PQR College of Engineering",
@@ -45,6 +46,7 @@ const HACKATHONS = [
     closed: false,
   },
   {
+    id: "evt_healthtech",
     tag: "Health", tagBg: "#3A1E45", tagColor: "#E879F9",
     name: "HealthTech Hackathon",
     host: "Hosted by LMN Medical College",
@@ -57,6 +59,7 @@ const HACKATHONS = [
     closed: false,
   },
   {
+    id: "evt_campus_buildathon",
     tag: "Miscellaneous", tagBg: "#3A2E14", tagColor: "#EAB308",
     name: "Campus Buildathon",
     host: "Hosted by University of Calcutta",
@@ -69,6 +72,7 @@ const HACKATHONS = [
     closed: true,
   },
   {
+    id: "evt_edtech",
     tag: "Education", tagBg: "#123A3E", tagColor: "#2DD4BF",
     name: "EdTech Innovation Challenge",
     host: "Hosted by St. Xavier's College",
@@ -86,6 +90,52 @@ export default function HackathonsListing({ onNavigate, user, onLogout }) {
   const [navOpen, setNavOpen] = useState(false);
   const [userDropdown, setUserDropdown] = useState(false);
   const [page, setPage] = useState(1);
+  const [eventsList, setEventsList] = useState(DEFAULT_HACKATHONS);
+
+  useEffect(() => {
+    fetch("http://localhost:8000/api/events")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((dbEvents) => {
+        if (!Array.isArray(dbEvents) || dbEvents.length === 0) return;
+        setEventsList((prev) => {
+          return prev.map((h) => {
+            const matched = dbEvents.find(
+              (e) => e.name.toLowerCase() === h.name.toLowerCase() ||
+                     e.id === (h.name === "Smart Hack 2027" ? "evt_smart_hack_2027" : h.name === "Sample Hack 2026" ? "evt_01" : h.id)
+            );
+            if (matched) {
+              return {
+                ...h,
+                id: matched.id,
+                closed: !matched.is_open,
+                name: matched.name,
+                desc: matched.description || h.desc,
+              };
+            }
+            return h;
+          });
+        });
+      })
+      .catch(() => {});
+  }, []);
+
+  const navItems = user?.role === "judge"
+    ? ["Home", "Hackathons", "Projects", "Judge Dashboard"]
+    : user?.role === "participant"
+      ? ["Home", "Hackathons", "Projects", "Participant Dashboard"]
+      : user?.role === "organizer"
+        ? ["Home", "Hackathons", "Projects", "Organizer Dashboard"]
+        : ["Home", "Hackathons", "Projects", "About"];
+
+  const handleNavClick = (item) => {
+    if (!onNavigate) return;
+    if (item === "Home") onNavigate("HackFlow Home");
+    else if (item === "Hackathons") onNavigate("Hackathons Listing");
+    else if (item === "Projects") onNavigate("Organizer Projects");
+    else if (item === "Judge Dashboard") onNavigate("Judge Dashboard");
+    else if (item === "Participant Dashboard") onNavigate("Participant Dashboard");
+    else if (item === "Organizer Dashboard") onNavigate("Organizer Dashboard");
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "#0B0C10", fontFamily: "Inter, sans-serif", color: "#E8E6F0" }}>
@@ -143,10 +193,10 @@ export default function HackathonsListing({ onNavigate, user, onLogout }) {
           </div>
 
           <div className="desktop-nav" style={{ gap: 28, flex: 1 }}>
-            {NAV.map((item) => (
+            {navItems.map((item) => (
               <a key={item} href="#" onClick={(e) => {
                 e.preventDefault();
-                if (item === "Home" && onNavigate) onNavigate("HackFlow Home");
+                handleNavClick(item);
               }} style={{
                 color: item === "Hackathons" ? "#B8A9FD" : "#9A96AC", textDecoration: "none", fontSize: 14.5, fontWeight: 500,
                 borderBottom: item === "Hackathons" ? "2px solid #7C5CFC" : "2px solid transparent",
@@ -253,8 +303,8 @@ export default function HackathonsListing({ onNavigate, user, onLogout }) {
 
         {navOpen && (
           <div className="mobile-toggle" style={{ flexDirection: "column", padding: "0 24px 16px", gap: 4 }}>
-            {NAV.map((item) => (
-              <a key={item} href="#" style={{ color: "#C7C4D6", textDecoration: "none", fontSize: 15, padding: "10px 0", borderTop: "1px solid #1D2029" }}>
+            {navItems.map((item) => (
+              <a key={item} href="#" onClick={(e) => { e.preventDefault(); handleNavClick(item); }} style={{ color: "#C7C4D6", textDecoration: "none", fontSize: 15, padding: "10px 0", borderTop: "1px solid #1D2029" }}>
                 {item}
               </a>
             ))}
@@ -273,7 +323,7 @@ export default function HackathonsListing({ onNavigate, user, onLogout }) {
               <CalendarDays size={22} color="#B8A9FD" />
             </div>
             <div>
-              <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(24px, 4vw, 32px)", fontWeight: 700, margin: "0 0 6px", letterSpacing: "-0.015em" }}>
+              <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(24px, 4vw, 32px)", fontWeight: 700, margin: "0 0 6px", letterSpacing: "-0.01em" }}>
                 Available <span style={{ color: "#8A6EFC" }}>Hackathons</span>
               </h1>
               <p style={{ color: "#9A96AC", fontSize: 14.5, margin: 0 }}>Explore and join hackathons that match your interests and skills.</p>
@@ -299,7 +349,7 @@ export default function HackathonsListing({ onNavigate, user, onLogout }) {
 
         {/* Cards */}
         <div className="cards-grid" style={{ marginBottom: 36 }}>
-          {HACKATHONS.map((h) => (
+          {eventsList.map((h) => (
             <HackathonCard key={h.name} data={h} onNavigate={onNavigate} />
           ))}
         </div>
@@ -386,7 +436,7 @@ function HackathonCard({ data, onNavigate }) {
         </div>
         <button
           onClick={() => onNavigate && onNavigate("Hackathon Detail", { 
-            eventId: (name === "Smart Hack 2027" || name === "Sample Hack 2027") ? "evt_smart_hack_2027" : (name === "FinTech Buildathon" ? "evt_fintech" : `evt_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`), 
+            eventId: data.id || ((name === "Smart Hack 2027" || name === "Sample Hack 2027") ? "evt_smart_hack_2027" : (name === "FinTech Buildathon" ? "evt_fintech" : `evt_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`)), 
             name 
           })}
           style={{

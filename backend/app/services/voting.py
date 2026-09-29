@@ -103,7 +103,7 @@ class VotingService:
                     participant_event = db.query(Event).filter(Event.id == ct.event_id).first()
 
         event = None
-        if event_id and event_id not in ["evt_smart_hack_2027", "undefined", "null"]:
+        if event_id and event_id not in ["undefined", "null", ""]:
             event = db.query(Event).filter(Event.id == event_id).first()
 
         if not event:

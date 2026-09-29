@@ -67,7 +67,100 @@ def submit_project_to_event(
     )
     return project
 
+import uuid
+from datetime import datetime
+from backend.app.models.event import Event
+from backend.app.models.team import Team
+from backend.app.models.team_member import TeamMember
+
 @router.get("/{event_id}/projects")
 def get_event_projects(event_id: str, db: Session = Depends(get_db)):
     """Get all submitted projects for a specific event."""
     return ProjectService.list_projects(db, event_id=event_id)
+
+@router.post("/{event_id}/join")
+def join_event(
+    event_id: str,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Join an open hackathon as an authenticated participant.
+    Authoritatively checks that:
+    1. User is authenticated with an active session
+    2. Event exists
+    3. Event is currently open (submissions_close > now)
+    4. If participant is already a member, returns idempotent success
+    5. If not, adds participant as a member/team in that event
+    """
+    session = get_current_session(request, db)
+    user = session.get("user")
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required to join an event."
+        )
+
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Event '{event_id}' not found."
+        )
+
+    now = datetime.utcnow()
+    if event.submissions_close and event.submissions_close <= now:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This hackathon is closed for participation."
+        )
+
+    # Check if participant already has a team/membership in this event
+    user_email = (user.email or "").strip().lower()
+    existing_team = None
+    if user_email:
+        member = db.query(TeamMember).join(Team, Team.id == TeamMember.team_id).filter(
+            Team.event_id == event_id,
+            TeamMember.user_email.ilike(user_email)
+        ).first()
+        if member:
+            existing_team = db.query(Team).filter(Team.id == member.team_id).first()
+
+    if not existing_team:
+        existing_team = db.query(Team).filter(
+            Team.event_id == event_id,
+            Team.created_by == user.id
+        ).first()
+
+    if existing_team:
+        return {
+            "message": "Already a member of this hackathon",
+            "event_id": event.id,
+            "event_name": event.name,
+            "team_id": existing_team.id,
+            "already_member": True
+        }
+
+    # Create team & membership for this participant
+    new_team_id = f"tm_{uuid.uuid4().hex[:8]}"
+    team_name = f"{user.name}'s Team" if user.name else "Participant Team"
+    new_team = Team(
+        id=new_team_id,
+        event_id=event.id,
+        name=team_name,
+        created_by=user.id
+    )
+    db.add(new_team)
+    if user.email:
+        db.add(TeamMember(team_id=new_team_id, user_email=user.email.strip().lower()))
+
+    db.commit()
+    db.refresh(new_team)
+
+    return {
+        "message": "Successfully joined hackathon",
+        "event_id": event.id,
+        "event_name": event.name,
+        "team_id": new_team.id,
+        "already_member": False
+    }

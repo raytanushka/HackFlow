@@ -86,6 +86,25 @@ export default function OrganizerProjects({ user, onNavigate, onLogout }) {
     return title.includes(q) || team.includes(q) || track.includes(q) || summary.includes(q);
   });
 
+  const handleBackToDashboard = () => {
+    if (!onNavigate) return;
+    if (currentUser?.role === "judge") {
+      onNavigate("Judge Dashboard");
+    } else if (currentUser?.role === "participant") {
+      onNavigate("Participant Dashboard");
+    } else {
+      onNavigate("Organizer Dashboard");
+    }
+  };
+
+  const navDashboardLabel = currentUser?.role === "judge"
+    ? "Judge Dashboard"
+    : currentUser?.role === "participant"
+      ? "Participant Dashboard"
+      : currentUser?.role === "organizer"
+        ? "Organizer Dashboard"
+        : null;
+
   return (
     <div style={{ minHeight: "100vh", background: "#0F1115", fontFamily: "Inter, sans-serif", color: "#E8E6F0" }}>
       <style>{`
@@ -112,12 +131,16 @@ export default function OrganizerProjects({ user, onNavigate, onLogout }) {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
+        .desktop-nav { display: flex; }
+        @media (max-width: 760px) {
+          .desktop-nav { display: none; }
+        }
       `}</style>
 
       {/* Top bar */}
-      <div style={{ borderBottom: "1px solid #1D2029", padding: "16px 24px" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => onNavigate && onNavigate("Organizer Dashboard")}>
+      <div style={{ borderBottom: "1px solid #1D2029", padding: "14px 24px" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", alignItems: "center", gap: 32 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => onNavigate && onNavigate("HackFlow Home")}>
             <div style={{ width: 30, height: 30, borderRadius: 7, background: "#7C5CFC", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Rocket size={16} color="#0F1115" strokeWidth={2.5} />
             </div>
@@ -126,25 +149,68 @@ export default function OrganizerProjects({ user, onNavigate, onLogout }) {
             </span>
           </div>
 
-          <button
-            onClick={() => onNavigate && onNavigate("Organizer Dashboard")}
-            style={{
-              background: "#14161C",
-              border: "1px solid #262A34",
-              color: "#C7C4D6",
-              padding: "8px 14px",
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 7,
-              transition: "all 0.15s ease"
-            }}
-          >
-            <ArrowLeft size={14} /> Back to Dashboard
-          </button>
+          <div className="desktop-nav" style={{ gap: 26, flex: 1 }}>
+            <a
+              href="#"
+              onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate("HackFlow Home"); }}
+              style={{ color: "#9A96AC", textDecoration: "none", fontSize: 14, fontWeight: 500 }}
+            >
+              Home
+            </a>
+            <a
+              href="#"
+              onClick={(e) => { e.preventDefault(); if (onNavigate) onNavigate("Hackathons Listing"); }}
+              style={{ color: "#9A96AC", textDecoration: "none", fontSize: 14, fontWeight: 500 }}
+            >
+              Hackathons
+            </a>
+            <a
+              href="#"
+              onClick={(e) => { e.preventDefault(); }}
+              style={{
+                color: "#B8A9FD",
+                textDecoration: "none",
+                fontSize: 14,
+                fontWeight: 500,
+                borderBottom: "2px solid #7C5CFC",
+                paddingBottom: 16,
+                marginBottom: -17,
+              }}
+            >
+              Projects
+            </a>
+            {navDashboardLabel && (
+              <a
+                href="#"
+                onClick={(e) => { e.preventDefault(); handleBackToDashboard(); }}
+                style={{ color: "#9A96AC", textDecoration: "none", fontSize: 14, fontWeight: 500 }}
+              >
+                {navDashboardLabel}
+              </a>
+            )}
+          </div>
+
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
+            <button
+              onClick={handleBackToDashboard}
+              style={{
+                background: "#14161C",
+                border: "1px solid #262A34",
+                color: "#C7C4D6",
+                padding: "8px 14px",
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+                transition: "all 0.15s ease"
+              }}
+            >
+              <ArrowLeft size={14} /> Back to Dashboard
+            </button>
+          </div>
         </div>
       </div>
 
@@ -154,7 +220,11 @@ export default function OrganizerProjects({ user, onNavigate, onLogout }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16, marginBottom: 28 }}>
           <div>
             <div style={{ fontSize: 12.5, color: "#5B5F6D", fontWeight: 600, letterSpacing: "0.05em", marginBottom: 6 }}>
-              ORGANIZER PORTAL &bull; DATABASE PROJECTS
+              {currentUser?.role === "judge"
+                ? "JUDGE & EVALUATION • ALL PROJECTS"
+                : currentUser?.role === "participant"
+                  ? "PARTICIPANT PROJECT POOL • ALL PROJECTS"
+                  : "ORGANIZER PORTAL • DATABASE PROJECTS"}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 28, fontWeight: 700, margin: 0 }}>

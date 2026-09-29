@@ -203,7 +203,7 @@ class AuthService:
         db.refresh(user)
 
         effective_event_id = event_id
-        if not effective_event_id or effective_event_id == "evt_smart_hack_2027":
+        if not effective_event_id:
             from backend.app.models.team_member import TeamMember
             from backend.app.models.team import Team
             member = db.query(TeamMember).filter(TeamMember.user_email.ilike(normalized_email)).first()
@@ -211,14 +211,14 @@ class AuthService:
                 tm = db.query(Team).filter(Team.id == member.team_id).first()
                 if tm and tm.event_id:
                     effective_event_id = tm.event_id
-        if not effective_event_id or effective_event_id == "evt_smart_hack_2027":
+        if not effective_event_id:
             effective_event_id = "evt_01"
 
         event_info = AuthService.get_event_info(db, effective_event_id)
         return user, session_token, event_info
 
     @staticmethod
-    def register_or_login_judge(
+    def register_judge(
         db: Session,
         name: str,
         email: str,
@@ -227,27 +227,46 @@ class AuthService:
         from backend.app.models.judge_assignment import JudgeAssignment
         from backend.app.models.track import Track
 
-        normalized_email = email.strip().lower()
+        normalized_email = email.strip().lower() if email else ""
         assigned_id = judge_id.strip() if judge_id and judge_id.strip() else None
 
-        user = db.query(User).filter(User.email == normalized_email).first()
-        if not user and assigned_id:
-            user = db.query(User).filter(User.id == assigned_id).first()
-
-        if not user:
-            user_id = assigned_id or f"jdg_{uuid.uuid4().hex[:8]}"
-            user = User(
-                id=user_id,
-                name=name.strip() if name else "Judge",
-                email=normalized_email,
-                role="judge"
+        if not normalized_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email is required"
             )
-            db.add(user)
+
+        # Check if email is already in use
+        if db.query(User).filter(User.email == normalized_email).first():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+
+        # Check if judge_id is already in use
+        if assigned_id:
+            if db.query(User).filter(User.id == assigned_id).first():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Judge ID already in use"
+                )
+
+        user_id = assigned_id or f"jdg_{uuid.uuid4().hex[:8]}"
+        user = User(
+            id=user_id,
+            name=name.strip() if name else "Judge",
+            email=normalized_email,
+            role="judge"
+        )
+        db.add(user)
+        try:
             db.flush()
-        else:
-            user.role = "judge"
-            if name and (not user.name or user.name == "Judge"):
-                user.name = name.strip()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Judge ID already in use"
+            )
 
         # Ensure judge has track assignments
         assignment_count = db.query(JudgeAssignment).filter(JudgeAssignment.judge_id == user.id).count()
@@ -273,28 +292,44 @@ class AuthService:
         return user, session_token, event_info
 
     @staticmethod
+    def register_or_login_judge(
+        db: Session,
+        name: str,
+        email: str,
+        judge_id: Optional[str] = None
+    ) -> Tuple[User, str, Optional[Dict[str, Any]]]:
+        return AuthService.register_judge(db=db, name=name, email=email, judge_id=judge_id)
+
+    @staticmethod
     def login_judge(
         db: Session,
         email: str,
         judge_id: Optional[str] = None
     ) -> Tuple[User, str, Optional[Dict[str, Any]]]:
-        normalized_email = email.strip().lower()
+        normalized_email = email.strip().lower() if email else ""
         assigned_id = judge_id.strip() if judge_id and judge_id.strip() else None
 
-        user = db.query(User).filter(User.email == normalized_email).first()
-        if not user and assigned_id:
-            user = db.query(User).filter(User.id == assigned_id).first()
+        if not normalized_email or not assigned_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid judge credentials"
+            )
+
+        user = db.query(User).filter(
+            User.email == normalized_email,
+            User.id == assigned_id
+        ).first()
 
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Judge account not found. Please register first."
+                detail="Invalid judge credentials"
             )
 
         if user.role not in ("judge", "organizer", "admin"):
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access restricted: user is not a judge"
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid judge credentials"
             )
 
         session_token = f"session_jdg_{uuid.uuid4().hex}"

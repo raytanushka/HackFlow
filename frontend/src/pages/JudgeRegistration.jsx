@@ -39,7 +39,7 @@ export default function JudgeRegistration({
   // Active judge session banner is rendered in the UI without trapping navigation
 
   const canContinue = isLoginMode
-    ? Boolean(email.trim() || judgeId.trim())
+    ? Boolean(email.trim() && judgeId.trim())
     : Boolean(name.trim() && email.trim() && judgeId.trim());
 
   const handleAuthSubmit = async (e) => {

@@ -509,9 +509,32 @@ export default function ParticipantDashboard({
             <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(24px, 4vw, 32px)", fontWeight: 700, margin: "0 0 8px", letterSpacing: "-0.015em" }}>
               Hello, {currentUser?.name ? currentUser.name.split(" ")[0] : "Participant"}!
             </h1>
-            <p style={{ color: "#9A96AC", fontSize: 14.5, lineHeight: 1.6, margin: 0, maxWidth: 520 }}>
+            <p style={{ color: "#9A96AC", fontSize: 14.5, lineHeight: 1.6, margin: "0 0 16px", maxWidth: 520 }}>
               Welcome to {currentEvent.name}. Explore other teams' projects, cast your community ballot, and collaborate with creators.
             </p>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+              <button
+                onClick={() => onNavigate && onNavigate("Hackathons Listing")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  background: "rgba(124, 92, 252, 0.15)",
+                  border: "1px solid rgba(124, 92, 252, 0.35)",
+                  color: "#B8A9FD",
+                  padding: "8px 16px",
+                  borderRadius: 8,
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(124, 92, 252, 0.25)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(124, 92, 252, 0.15)")}
+              >
+                <Rocket size={15} /> Browse Hackathons
+              </button>
+            </div>
           </div>
 
           {/* Clickable Event Card */}

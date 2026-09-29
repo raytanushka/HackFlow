@@ -23,6 +23,7 @@ import {
   Menu,
   X,
   MoreHorizontal,
+  LogOut,
 } from "lucide-react";
 
 import {
@@ -106,6 +107,7 @@ export default function JudgeDashboard({ user, onNavigate, onLogout }) {
   const [commentStatus, setCommentStatus] = useState("");
 
   const [navOpen, setNavOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -677,57 +679,125 @@ const currentTrack =
               />
             </div>
 
-            <div
-              className="desktop-nav"
-              style={{
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
+            <div style={{ position: "relative" }}>
               <div
+                className="desktop-nav"
+                onClick={() => setUserMenuOpen((m) => !m)}
                 style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: "50%",
-                  background: "rgba(124,92,252,0.25)",
-                  border: "1px solid #7C5CFC",
-                  display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: "#B8A9FD",
+                  gap: 8,
+                  cursor: "pointer",
+                  padding: "4px 8px",
+                  borderRadius: 8,
+                  background: userMenuOpen ? "rgba(124,92,252,0.12)" : "transparent",
+                  transition: "background 0.15s ease",
                 }}
               >
-                {getInitials(judge?.name)}
-              </div>
-
-              <div>
                 <div
                   style={{
-                    fontSize: 13,
-                    fontWeight: 500,
-                    lineHeight: 1.2,
+                    width: 30,
+                    height: 30,
+                    borderRadius: "50%",
+                    background: "rgba(124,92,252,0.25)",
+                    border: "1px solid #7C5CFC",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: "#B8A9FD",
                   }}
                 >
-                  {judge?.name || "Judge"}
+                  {getInitials(judge?.name)}
                 </div>
 
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "#5B5F6D",
-                    lineHeight: 1.2,
-                  }}
-                >
-                  Judge
+                <div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 500,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {judge?.name || "Judge"}
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "#5B5F6D",
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    Judge
+                  </div>
                 </div>
+
+                <ChevronDown
+                  size={14}
+                  color="#5B5F6D"
+                />
               </div>
 
-              <ChevronDown
-                size={14}
-                color="#5B5F6D"
-              />
+              {userMenuOpen && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 42,
+                    right: 0,
+                    background: "#171A21",
+                    border: "1px solid #262A34",
+                    borderRadius: 10,
+                    padding: 6,
+                    minWidth: 180,
+                    boxShadow: "0 12px 24px rgba(0,0,0,0.5)",
+                    zIndex: 100,
+                  }}
+                >
+                  <div style={{ padding: "8px 10px", borderBottom: "1px solid #202430", marginBottom: 4 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#E8E6F0" }}>{judge?.name || user?.name || "Judge"}</div>
+                    <div style={{ fontSize: 11.5, color: "#9A96AC", overflow: "hidden", textOverflow: "ellipsis" }}>{judge?.email || user?.email || ""}</div>
+                  </div>
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setUserMenuOpen(false);
+                      navigate("/judge/dashboard");
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 10px",
+                      fontSize: 13.5,
+                      color: "#C7C4D6",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <FolderKanban size={14} color="#7C5CFC" /> Judge Dashboard
+                  </div>
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setUserMenuOpen(false);
+                      if (onLogout) onLogout();
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 10px",
+                      fontSize: 13.5,
+                      color: "#F87171",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <LogOut size={14} /> Log out
+                  </div>
+                </div>
+              )}
             </div>
 
             <button
