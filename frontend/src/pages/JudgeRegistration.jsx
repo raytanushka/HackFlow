@@ -281,7 +281,7 @@ export default function JudgeRegistration({
               </div>
             ) : (
               <button
-                onClick={() => onNavigate && onNavigate("Login")}
+                onClick={() => onNavigate && onNavigate("Login", { role: "judge" })}
                 style={{
                   background: "transparent", border: "1px solid #7C5CFC", color: "#B8A9FD",
                   padding: "8px 16px", borderRadius: 8, fontSize: 13.5, fontWeight: 500,

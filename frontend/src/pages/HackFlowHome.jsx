@@ -95,7 +95,7 @@ export default function HackFlowHome({ onNavigate, user, onLogout }) {
       return;
     }
     if (onNavigate) {
-      onNavigate("Judge Registration");
+      onNavigate("Login", { role: "judge" });
     }
   };
 

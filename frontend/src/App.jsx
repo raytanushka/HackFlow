@@ -31,7 +31,7 @@ const getPageFromPath = (path) => {
   if (cleanPath === "/participant/registration" || cleanPath === "/participant-registration") {
     return "Participant Registration";
   }
-  if (cleanPath === "/login") {
+  if (cleanPath === "/login" || cleanPath === "/judge/login") {
     return "Login";
   }
   if (cleanPath === "/hackathons" || cleanPath === "/hackathons-listing") {
@@ -49,7 +49,7 @@ const getPageFromPath = (path) => {
   return "HackFlow Home";
 };
 
-const getPathFromPage = (pageName) => {
+const getPathFromPage = (pageName, navParams = {}) => {
   switch (pageName) {
     case "Organizer Projects":
     case "organizer-projects":
@@ -72,7 +72,7 @@ const getPathFromPage = (pageName) => {
       return "/participant/dashboard";
     case "Login":
     case "login":
-      return "/login";
+      return navParams?.role ? `/login?role=${navParams.role}` : "/login";
     case "Hackathons Listing":
     case "hackathons-listing":
     case "hackathons":
@@ -232,7 +232,7 @@ export default function App() {
     setCurrentPage(pageName);
 
     if (typeof window !== "undefined" && window.history) {
-      const targetPath = getPathFromPage(pageName);
+      const targetPath = getPathFromPage(pageName, params);
       if (window.location.pathname !== targetPath) {
         window.history.pushState({}, "", targetPath);
       }

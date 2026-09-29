@@ -1,12 +1,24 @@
 import React, { useState, useEffect } from "react";
-import { Zap, Mail, Shield, ArrowRight, ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
+import { Zap, Mail, Shield, ArrowRight, ArrowLeft, AlertCircle, Loader2, Gavel } from "lucide-react";
 
 export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialRole, eventId, eventName, name }) {
-  const [role, setRole] = useState(initialRole || "organizer");
+  const getInitialRole = () => {
+    if (initialRole) return initialRole;
+    if (typeof window !== "undefined" && window.location) {
+      const params = new URLSearchParams(window.location.search);
+      const r = params.get("role");
+      if (r === "judge" || r === "participant" || r === "organizer") return r;
+      if (window.location.pathname === "/judge/login") return "judge";
+    }
+    return "organizer";
+  };
+
+  const [role, setRole] = useState(getInitialRole);
   const [dbEvent, setDbEvent] = useState(null);
   const [availableEvents, setAvailableEvents] = useState([]);
   const [email, setEmail] = useState("");
   const [organizerId, setOrganizerId] = useState("");
+  const [judgeId, setJudgeId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -49,7 +61,9 @@ export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialR
 
   const canSubmit = role === "participant" 
     ? Boolean(email.trim()) 
-    : Boolean(email.trim() && organizerId.trim());
+    : role === "judge"
+      ? Boolean(email.trim() && judgeId.trim())
+      : Boolean(email.trim() && organizerId.trim());
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
@@ -59,13 +73,19 @@ export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialR
     setError("");
 
     try {
-      const endpoint = role === "participant" 
-        ? "http://localhost:8000/api/auth/login-participant" 
-        : "http://localhost:8000/api/auth/login";
+      let endpoint = "http://localhost:8000/api/auth/login";
+      let payload = {};
 
-      const payload = role === "participant"
-        ? { email: email.trim(), event_id: eventId }
-        : { email: email.trim(), organizer_id: organizerId.trim(), event_id: eventId };
+      if (role === "participant") {
+        endpoint = "http://localhost:8000/api/auth/login-participant";
+        payload = { email: email.trim(), event_id: eventId };
+      } else if (role === "judge") {
+        endpoint = "http://localhost:8000/api/auth/login-judge";
+        payload = { email: email.trim(), judge_id: judgeId.trim() };
+      } else {
+        endpoint = "http://localhost:8000/api/auth/login";
+        payload = { email: email.trim(), organizer_id: organizerId.trim(), event_id: eventId };
+      }
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -82,7 +102,7 @@ export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialR
       }
 
       if (!res.ok) {
-        let msg = "Invalid email or organizer ID";
+        let msg = role === "judge" ? "Invalid judge credentials" : "Invalid email or organizer ID";
         if (typeof data.detail === "string" && data.detail.trim()) {
           msg = data.detail;
         } else if (Array.isArray(data.detail) && data.detail.length > 0) {
@@ -94,7 +114,7 @@ export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialR
         } else if (data.detail && typeof data.detail === "object") {
           msg = data.detail.msg || JSON.stringify(data.detail);
         } else if (res.status === 401) {
-          msg = "Invalid email or organizer ID";
+          msg = role === "judge" ? "Invalid judge credentials" : "Invalid email or organizer ID";
         } else if (res.status === 404) {
           msg = "Account not found. Please register first.";
         }
@@ -121,6 +141,8 @@ export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialR
       if (onNavigate) {
         if (role === "participant") {
           onNavigate(redirectTo || "Participant Dashboard", { eventId, name: (data.event && data.event.name) || displayEventName });
+        } else if (role === "judge") {
+          onNavigate("Judge Dashboard");
         } else {
           onNavigate("Organizer Dashboard");
         }
@@ -201,14 +223,14 @@ export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialR
         }}>
           {/* Role Switcher */}
           <div style={{
-            display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6,
+            display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6,
             background: "#181B22", padding: 4, borderRadius: 10, marginBottom: 22, border: "1px solid #262A34"
           }}>
             <button
               type="button"
-              onClick={() => { setRole("participant"); setEmail(""); setOrganizerId(""); setError(""); }}
+              onClick={() => { setRole("participant"); setEmail(""); setOrganizerId(""); setJudgeId(""); setError(""); }}
               style={{
-                padding: "8px 12px", borderRadius: 7, border: "none", fontSize: 13.5, fontWeight: 600,
+                padding: "8px 8px", borderRadius: 7, border: "none", fontSize: 13.5, fontWeight: 600,
                 cursor: "pointer", transition: "all 0.15s ease",
                 background: role === "participant" ? "#7C5CFC" : "transparent",
                 color: role === "participant" ? "#FFFFFF" : "#9A96AC"
@@ -218,15 +240,27 @@ export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialR
             </button>
             <button
               type="button"
-              onClick={() => { setRole("organizer"); setEmail(""); setOrganizerId(""); setError(""); }}
+              onClick={() => { setRole("organizer"); setEmail(""); setOrganizerId(""); setJudgeId(""); setError(""); }}
               style={{
-                padding: "8px 12px", borderRadius: 7, border: "none", fontSize: 13.5, fontWeight: 600,
+                padding: "8px 8px", borderRadius: 7, border: "none", fontSize: 13.5, fontWeight: 600,
                 cursor: "pointer", transition: "all 0.15s ease",
                 background: role === "organizer" ? "#7C5CFC" : "transparent",
                 color: role === "organizer" ? "#FFFFFF" : "#9A96AC"
               }}
             >
               Organizer
+            </button>
+            <button
+              type="button"
+              onClick={() => { setRole("judge"); setEmail(""); setOrganizerId(""); setJudgeId(""); setError(""); }}
+              style={{
+                padding: "8px 8px", borderRadius: 7, border: "none", fontSize: 13.5, fontWeight: 600,
+                cursor: "pointer", transition: "all 0.15s ease",
+                background: role === "judge" ? "#7C5CFC" : "transparent",
+                color: role === "judge" ? "#FFFFFF" : "#9A96AC"
+              }}
+            >
+              Judge
             </button>
           </div>
 
@@ -237,15 +271,21 @@ export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialR
               display: "flex", alignItems: "center", justifyContent: "center",
               margin: "0 auto 14px"
             }}>
-              <Shield size={22} color="#B8A9FD" />
+              {role === "judge" ? (
+                <Gavel size={22} color="#B8A9FD" />
+              ) : (
+                <Shield size={22} color="#B8A9FD" />
+              )}
             </div>
             <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 700, margin: "0 0 6px" }}>
-              {role === "participant" ? "Participant Login" : "Organizer Login"}
+              {role === "participant" ? "Participant Login" : (role === "judge" ? "Judge Login" : "Organizer Login")}
             </h1>
             <p style={{ color: "#9A96AC", fontSize: 13.5, margin: 0, lineHeight: 1.5 }}>
               {role === "participant"
                 ? `Enter your email to sign in and submit to ${displayEventName}.`
-                : "Enter your registered organizer email and ID to access your dashboard."}
+                : role === "judge"
+                  ? "Enter your registered judge email and ID to access your dashboard."
+                  : "Enter your registered organizer email and ID to access your dashboard."}
             </p>
             {role === "participant" && (
               <div style={{
@@ -283,7 +323,13 @@ export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialR
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder={role === "participant" ? "you@college.edu" : "organizer@example.org"}
+                  placeholder={
+                    role === "participant"
+                      ? "you@college.edu"
+                      : role === "judge"
+                        ? "judge@example.org"
+                        : "organizer@example.org"
+                  }
                   disabled={loading}
                   autoComplete="email"
                 />
@@ -312,6 +358,28 @@ export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialR
               </div>
             )}
 
+            {role === "judge" && (
+              <div>
+                <label style={{ display: "block", fontSize: 13.5, fontWeight: 500, color: "#C7C4D6", marginBottom: 7 }}>
+                  Judge ID
+                </label>
+                <div style={{ position: "relative" }}>
+                  <Gavel size={16} color="#5B5F6D" style={{ position: "absolute", left: 14, top: 14 }} />
+                  <input
+                    type="text"
+                    value={judgeId}
+                    onChange={(e) => setJudgeId(e.target.value)}
+                    placeholder="e.g. jdg_08"
+                    autoComplete="off"
+                    disabled={loading}
+                  />
+                </div>
+                <div style={{ fontSize: 12, color: "#5B5F6D", marginTop: 5 }}>
+                  Your unique judge identifier assigned by the organizer.
+                </div>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={!canSubmit || loading}
@@ -333,7 +401,12 @@ export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialR
                 </>
               ) : (
                 <>
-                  {role === "participant" ? "Sign in as Participant" : "Sign in to Dashboard"} <ArrowRight size={16} />
+                  {role === "participant"
+                    ? "Sign in as Participant"
+                    : role === "judge"
+                      ? "Sign in as Judge"
+                      : "Sign in to Dashboard"}{" "}
+                  <ArrowRight size={16} />
                 </>
               )}
             </button>
@@ -350,6 +423,20 @@ export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialR
                 <button
                   type="button"
                   onClick={() => onNavigate && onNavigate("Participant Registration", { eventId, name: displayEventName, redirectTo })}
+                  style={{
+                    background: "none", border: "none", color: "#8A6EFC",
+                    fontWeight: 600, cursor: "pointer", padding: 0, fontSize: 13.5
+                  }}
+                >
+                  Register here
+                </button>
+              </>
+            ) : role === "judge" ? (
+              <>
+                Don't have a judge account?{" "}
+                <button
+                  type="button"
+                  onClick={() => onNavigate && onNavigate("Judge Registration")}
                   style={{
                     background: "none", border: "none", color: "#8A6EFC",
                     fontWeight: 600, cursor: "pointer", padding: 0, fontSize: 13.5
