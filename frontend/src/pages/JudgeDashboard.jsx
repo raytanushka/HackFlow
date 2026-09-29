@@ -161,8 +161,10 @@ setJudge(normalizedJudge);
 console.log("CURRENT LOGGED-IN JUDGE:", normalizedJudge);
 setJudgeTracks(normalizedJudgeTracks);
 
-if (normalizedJudge.length > 0) {
-  setActiveTrack(normalizedJudge[0].id);
+if (Array.isArray(judgeData?.tracks) && judgeData.tracks.length > 0) {
+  setActiveTrack(judgeData.tracks[0].id);
+} else if (normalizedJudgeTracks.length > 0) {
+  setActiveTrack(normalizedJudgeTracks[0].id);
 } else {
   setActiveTrack("");
 }
@@ -369,24 +371,41 @@ const currentTrack =
               fontSize: 13,
             }}
           >
-            Make sure the HackFlow backend is running on
-            port 8080 and that you are logged in as a judge.
+            Please ensure you are authenticated with an authorized judge account on port 8000.
           </p>
 
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              background: "#7C5CFC",
-              border: "none",
-              color: "#FFFFFF",
-              padding: "10px 16px",
-              borderRadius: 8,
-              cursor: "pointer",
-              fontWeight: 600,
-            }}
-          >
-            Retry
-          </button>
+          <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
+            <button
+              onClick={() => onNavigate ? onNavigate("Judge Registration") : navigate("/judge/register")}
+              style={{
+                background: "linear-gradient(135deg, #8A6EFC, #6D4FE8)",
+                border: "none",
+                color: "#FFFFFF",
+                padding: "10px 18px",
+                borderRadius: 8,
+                cursor: "pointer",
+                fontWeight: 600,
+                fontSize: 13.5
+              }}
+            >
+              Log in as Judge
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                background: "#1B1E28",
+                border: "1px solid #2E3245",
+                color: "#E8E6F0",
+                padding: "10px 16px",
+                borderRadius: 8,
+                cursor: "pointer",
+                fontWeight: 500,
+                fontSize: 13.5
+              }}
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </div>
     );

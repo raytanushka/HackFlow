@@ -1,10 +1,11 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Zap, User, Mail, CreditCard, ArrowRight, ChevronDown, Menu, X,
   ShieldCheck, Users, Star, HelpCircle, Trophy, LayoutDashboard,
+  LogIn, CheckCircle, AlertCircle, Loader2
 } from "lucide-react";
 
-const NAV = ["Home", "Hackathons", "Projects", "About"];
+const NAV = ["Home", "Hackathons", "Projects", "Judge Dashboard"];
 
 const PERKS = [
   { icon: ShieldCheck, title: "Review projects", note: "Evaluate innovative ideas" },
@@ -12,15 +13,140 @@ const PERKS = [
   { icon: Star, title: "Make an impact", note: "Be part of something bigger" },
 ];
 
-export default function JudgeRegistration({ onNavigate, user, onLogout }) {
+const DEMO_JUDGES = [
+  { name: "Marek Nowak", email: "marek.nowak@example.org", id: "jdg_08", track: "Security" },
+  { name: "Priya Nair", email: "priya.nair@example.org", id: "jdg_03", track: "Security, Climate" },
+];
+
+export default function JudgeRegistration({
+  onNavigate,
+  user,
+  onLogout,
+  onRegistrationSuccess,
+  onLoginSuccess
+}) {
   const [navOpen, setNavOpen] = useState(false);
   const [userDropdown, setUserDropdown] = useState(false);
+
+  const [isLoginMode, setIsLoginMode] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [judgeId, setJudgeId] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const canContinue = name.trim() && email.trim() && judgeId.trim();
+  // If already authenticated as a judge, automatically redirect to Judge Dashboard
+  useEffect(() => {
+    if (user && (user.role === "judge" || user.role === "organizer" || user.role === "admin")) {
+      if (onNavigate) {
+        onNavigate("Judge Dashboard");
+      }
+    }
+  }, [user, onNavigate]);
+
+  const canContinue = isLoginMode
+    ? Boolean(email.trim() || judgeId.trim())
+    : Boolean(name.trim() && email.trim() && judgeId.trim());
+
+  const handleAuthSubmit = async (e) => {
+    e?.preventDefault();
+    if (!canContinue || loading) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const endpoint = isLoginMode
+        ? "http://localhost:8000/api/auth/login-judge"
+        : "http://localhost:8000/api/auth/register-judge";
+
+      const payload = isLoginMode
+        ? { email: email.trim(), judge_id: judgeId.trim() }
+        : { name: name.trim(), email: email.trim(), judge_id: judgeId.trim() };
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || data.message || "Judge authentication failed.");
+      }
+
+      const userData = {
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        role: "judge",
+        token: data.token,
+      };
+
+      localStorage.setItem("hackflow_user", JSON.stringify(userData));
+      localStorage.setItem("hackflow_token", data.token);
+
+      if (isLoginMode && onLoginSuccess) {
+        onLoginSuccess(userData);
+      } else if (onRegistrationSuccess) {
+        onRegistrationSuccess(userData);
+      } else if (onLoginSuccess) {
+        onLoginSuccess(userData);
+      }
+
+      setSubmitted(true);
+      if (onNavigate) {
+        onNavigate("Judge Dashboard");
+      }
+    } catch (err) {
+      setError(err.message || "Failed to authenticate judge.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuickDemoLogin = async (demoJudge) => {
+    setName(demoJudge.name);
+    setEmail(demoJudge.email);
+    setJudgeId(demoJudge.id);
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch("http://localhost:8000/api/auth/login-judge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: demoJudge.email, judge_id: demoJudge.id })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || "Demo judge login failed.");
+      }
+
+      const userData = {
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        role: "judge",
+        token: data.token,
+      };
+
+      localStorage.setItem("hackflow_user", JSON.stringify(userData));
+      localStorage.setItem("hackflow_token", data.token);
+
+      if (onLoginSuccess) onLoginSuccess(userData);
+      setSubmitted(true);
+      if (onNavigate) onNavigate("Judge Dashboard");
+    } catch (err) {
+      setError(err.message || "Demo login failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "#0B0C10", fontFamily: "Inter, sans-serif", color: "#E8E6F0" }}>
@@ -62,10 +188,6 @@ export default function JudgeRegistration({ onNavigate, user, onLogout }) {
           .desktop-nav { display: none; }
           .mobile-toggle { display: flex; }
         }
-        .side-visual { display: flex; justify-content: center; }
-        @media (max-width: 940px) {
-          .side-visual { display: none; }
-        }
       `}</style>
 
       {/* Nav */}
@@ -84,6 +206,8 @@ export default function JudgeRegistration({ onNavigate, user, onLogout }) {
                 e.preventDefault();
                 if (item === "Home" && onNavigate) onNavigate("HackFlow Home");
                 if (item === "Hackathons" && onNavigate) onNavigate("Hackathons Listing");
+                if (item === "Projects" && onNavigate) onNavigate("Organizer Projects");
+                if (item === "Judge Dashboard" && onNavigate) onNavigate("Judge Dashboard");
               }} style={{ color: "#9A96AC", textDecoration: "none", fontSize: 14.5, fontWeight: 500 }}>
                 {item}
               </a>
@@ -107,10 +231,10 @@ export default function JudgeRegistration({ onNavigate, user, onLogout }) {
                     display: "flex", alignItems: "center", justifyContent: "center",
                     color: "#FFF", fontSize: 11, fontWeight: 700
                   }}>
-                    {user.name ? user.name.charAt(0).toUpperCase() : (user.role === "participant" ? "P" : "O")}
+                    {user.name ? user.name.charAt(0).toUpperCase() : (user.role === "participant" ? "P" : (user.role === "judge" ? "J" : "O"))}
                   </div>
                   <span style={{ fontSize: 13.5, color: "#E8E6F0", fontWeight: 600 }}>
-                    {user.name || (user.role === "participant" ? "Participant" : "Organizer")}
+                    {user.name || (user.role === "participant" ? "Participant" : (user.role === "judge" ? "Judge" : "Organizer"))}
                   </span>
                   <ChevronDown size={14} color="#9A96AC" />
                 </div>
@@ -131,6 +255,8 @@ export default function JudgeRegistration({ onNavigate, user, onLogout }) {
                         if (onNavigate) {
                           if (user.role === "participant") {
                             onNavigate("Participant Dashboard");
+                          } else if (user.role === "judge") {
+                            onNavigate("Judge Dashboard");
                           } else {
                             onNavigate("Organizer Dashboard");
                           }
@@ -185,7 +311,14 @@ export default function JudgeRegistration({ onNavigate, user, onLogout }) {
         {navOpen && (
           <div className="mobile-toggle" style={{ flexDirection: "column", padding: "0 24px 16px", gap: 4 }}>
             {NAV.map((item) => (
-              <a key={item} href="#" style={{ color: "#C7C4D6", textDecoration: "none", fontSize: 15, padding: "10px 0", borderTop: "1px solid #1D2029" }}>
+              <a key={item} href="#" onClick={(e) => {
+                e.preventDefault();
+                setNavOpen(false);
+                if (item === "Home" && onNavigate) onNavigate("HackFlow Home");
+                if (item === "Hackathons" && onNavigate) onNavigate("Hackathons Listing");
+                if (item === "Projects" && onNavigate) onNavigate("Organizer Projects");
+                if (item === "Judge Dashboard" && onNavigate) onNavigate("Judge Dashboard");
+              }} style={{ color: "#C7C4D6", textDecoration: "none", fontSize: 15, padding: "10px 0", borderTop: "1px solid #1D2029" }}>
                 {item}
               </a>
             ))}
@@ -195,23 +328,23 @@ export default function JudgeRegistration({ onNavigate, user, onLogout }) {
 
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "64px 24px 80px" }}>
         <div className="split">
-          {/* Left: pitch */}
+          {/* Left: pitch & demo logins */}
           <div>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: "#9B87F5", letterSpacing: "0.1em", display: "block", marginBottom: 14 }}>
-              JUDGE REGISTRATION
+              JUDGING ENGINE
             </span>
             <h1 style={{
               fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(32px, 5vw, 46px)",
               fontWeight: 700, lineHeight: 1.12, letterSpacing: "-0.02em", margin: "0 0 20px",
             }}>
-              Be a part of<br />the <span style={{ color: "#8A6EFC" }}>Innovation.</span>
+              Fair, normalized<br />and <span style={{ color: "#8A6EFC" }}>Isolated Evaluation.</span>
             </h1>
-            <p style={{ color: "#9A96AC", fontSize: 16, lineHeight: 1.6, margin: "0 0 36px", maxWidth: 460 }}>
-              Join as a judge and help evaluate groundbreaking projects, guide talented teams,
-              and make an impact in the developer community.
+            <p style={{ color: "#9A96AC", fontSize: 16, lineHeight: 1.6, margin: "0 0 32px", maxWidth: 460 }}>
+              Join as an official hackathon judge to review assigned tracks, submit rubric scores,
+              and contribute to normalized project rankings.
             </p>
 
-            <div className="perks-row" style={{ marginBottom: 48 }}>
+            <div className="perks-row" style={{ marginBottom: 40 }}>
               {PERKS.map((p) => (
                 <div key={p.title} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <p.icon size={18} color="#9B87F5" strokeWidth={2} fill={p.icon === Star ? "#9B87F5" : "none"} />
@@ -223,8 +356,36 @@ export default function JudgeRegistration({ onNavigate, user, onLogout }) {
               ))}
             </div>
 
-            <div className="side-visual">
-              <HeroIllustration />
+            {/* Quick Demo Judge Logins */}
+            <div style={{
+              background: "#14161C", border: "1px solid #262A34", borderRadius: 12,
+              padding: "18px 20px", maxWidth: 460
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#B8A9FD", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                <CheckCircle size={15} /> Quick Demo Judge Login (Official Fixtures)
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {DEMO_JUDGES.map((dj) => (
+                  <button
+                    key={dj.id}
+                    onClick={() => handleQuickDemoLogin(dj)}
+                    disabled={loading}
+                    style={{
+                      display: "flex", justifyContent: "space-between", alignItems: "center",
+                      background: "#1B1E28", border: "1px solid #2E3245", borderRadius: 8,
+                      padding: "10px 14px", color: "#E8E6F0", cursor: "pointer", textAlign: "left",
+                      fontSize: 13
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontWeight: 600, color: "#FFF" }}>{dj.name}</span>
+                      <span style={{ color: "#7C5CFC", marginLeft: 8 }}>({dj.id})</span>
+                      <div style={{ fontSize: 11.5, color: "#9A96AC" }}>Tracks: {dj.track}</div>
+                    </div>
+                    <ArrowRight size={15} color="#B8A9FD" />
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -236,90 +397,127 @@ export default function JudgeRegistration({ onNavigate, user, onLogout }) {
             {submitted ? (
               <SuccessState name={name} onNavigate={onNavigate} />
             ) : (
-              <>
-                <div style={{ display: "flex", gap: 14, marginBottom: 26 }}>
-                  <div style={{
-                    width: 46, height: 46, borderRadius: "50%", flexShrink: 0,
-                    background: "rgba(124,92,252,0.18)", border: "1px solid rgba(155,135,245,0.35)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>
-                    <User size={22} color="#B8A9FD" />
-                  </div>
-                  <div>
-                    <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 19, fontWeight: 600, margin: "0 0 4px" }}>
-                      Judge registration
-                    </h2>
-                    <p style={{ fontSize: 13.5, color: "#5B5F6D", margin: 0, lineHeight: 1.5 }}>
-                      Fill in your details to join as a judge and start reviewing hackathon projects.
-                    </p>
+              <form onSubmit={handleAuthSubmit}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+                  <div style={{ display: "flex", gap: 14 }}>
+                    <div style={{
+                      width: 46, height: 46, borderRadius: "50%", flexShrink: 0,
+                      background: "rgba(124,92,252,0.18)", border: "1px solid rgba(155,135,245,0.35)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <User size={22} color="#B8A9FD" />
+                    </div>
+                    <div>
+                      <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 19, fontWeight: 600, margin: "0 0 4px" }}>
+                        {isLoginMode ? "Judge Sign In" : "Judge Registration"}
+                      </h2>
+                      <p style={{ fontSize: 13.5, color: "#5B5F6D", margin: 0, lineHeight: 1.5 }}>
+                        {isLoginMode
+                          ? "Enter your judge credentials to access your scoring dashboard."
+                          : "Fill in your details to join as an official hackathon judge."}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                <Field label="Full name" required>
-                  <div style={{ position: "relative" }}>
-                    <User size={16} className="field-icon" />
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Enter your full name"
-                      autoComplete="name"
-                    />
+                {error && (
+                  <div style={{
+                    background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.3)",
+                    borderRadius: 8, padding: "10px 14px", marginBottom: 18, color: "#F87171",
+                    fontSize: 13.5, display: "flex", alignItems: "center", gap: 8
+                  }}>
+                    <AlertCircle size={16} />
+                    <span>{error}</span>
                   </div>
-                </Field>
+                )}
 
-                <Field label="Email address" required>
+                {!isLoginMode && (
+                  <Field label="Full name" required>
+                    <div style={{ position: "relative" }}>
+                      <User size={16} className="field-icon" />
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g. Marek Nowak"
+                        autoComplete="name"
+                      />
+                    </div>
+                  </Field>
+                )}
+
+                <Field label="Email address" required={!isLoginMode || !judgeId}>
                   <div style={{ position: "relative" }}>
                     <Mail size={16} className="field-icon" />
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@example.com"
+                      placeholder="e.g. marek.nowak@example.org"
                       autoComplete="email"
                     />
                   </div>
                 </Field>
 
-                <Field label="Judge ID" required>
+                <Field label="Judge ID" required={!isLoginMode || !email}>
                   <div style={{ position: "relative" }}>
                     <CreditCard size={16} className="field-icon" />
                     <input
                       type="text"
                       value={judgeId}
                       onChange={(e) => setJudgeId(e.target.value)}
-                      placeholder="Enter your judge ID"
+                      placeholder="e.g. jdg_08"
                       autoComplete="off"
                     />
                   </div>
                 </Field>
 
                 <button
-                  disabled={!canContinue}
-                  onClick={() => canContinue && setSubmitted(true)}
+                  type="submit"
+                  disabled={!canContinue || loading}
                   style={{
                     width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                     background: canContinue ? "linear-gradient(135deg, #8A6EFC, #6D4FE8)" : "#262A34",
                     color: canContinue ? "#FFFFFF" : "#5B5F6D",
                     border: "none", padding: "14px", borderRadius: 10, fontSize: 15, fontWeight: 600,
-                    cursor: canContinue ? "pointer" : "not-allowed", fontFamily: "Inter, sans-serif", marginTop: 6,
+                    cursor: canContinue ? "pointer" : "not-allowed", fontFamily: "Inter, sans-serif", marginTop: 10,
                   }}
                 >
-                  Continue <ArrowRight size={16} />
+                  {loading ? (
+                    <>
+                      <Loader2 size={16} className="spin" /> Authenticating...
+                    </>
+                  ) : (
+                    <>
+                      {isLoginMode ? "Sign In & Open Dashboard" : "Register & Open Dashboard"} <ArrowRight size={16} />
+                    </>
+                  )}
                 </button>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "26px 0 16px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "24px 0 16px" }}>
                   <div style={{ flex: 1, height: 1, background: "#1D2029" }} />
-                  <span style={{ fontSize: 12.5, color: "#5B5F6D" }}>Need help?</span>
+                  <span style={{ fontSize: 12.5, color: "#5B5F6D" }}>OR</span>
                   <div style={{ flex: 1, height: 1, background: "#1D2029" }} />
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "center" }}>
-                  <a href="#" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13.5, color: "#B8A9FD", textDecoration: "none" }}>
-                    <HelpCircle size={15} /> Contact support
-                  </a>
+                <div style={{ textAlign: "center" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsLoginMode(!isLoginMode);
+                      setError("");
+                    }}
+                    style={{
+                      background: "none", border: "none", color: "#B8A9FD",
+                      fontSize: 13.5, cursor: "pointer", textDecoration: "underline"
+                    }}
+                  >
+                    {isLoginMode
+                      ? "Need to register a new judge ID? Click here"
+                      : "Already have a judge ID or account? Sign in directly"}
+                  </button>
                 </div>
-              </>
+              </form>
             )}
           </div>
         </div>
@@ -350,10 +548,10 @@ function SuccessState({ name, onNavigate }) {
         <Trophy size={24} color="#4ADE80" />
       </div>
       <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 21, fontWeight: 600, margin: "0 0 10px" }}>
-        Welcome, {name.split(" ")[0] || "judge"}
+        Welcome, {name ? name.split(" ")[0] : "Judge"}
       </h2>
       <p style={{ color: "#9A96AC", fontSize: 14, lineHeight: 1.6, margin: "0 0 20px" }}>
-        Your judge request is in. We'll verify your ID and assign your first tracks shortly.
+        You are authenticated with judge privileges.
       </p>
       <button
         onClick={() => onNavigate && onNavigate("Judge Dashboard")}
@@ -365,68 +563,6 @@ function SuccessState({ name, onNavigate }) {
       >
         Go to Judge Dashboard <ArrowRight size={16} />
       </button>
-    </div>
-  );
-}
-
-function HeroIllustration() {
-  return (
-    <div style={{ position: "relative", width: 280, height: 240 }}>
-      <div style={{
-        position: "absolute", inset: 0, borderRadius: "50%",
-        background: "radial-gradient(ellipse at center, rgba(124,92,252,0.16), transparent 65%)",
-      }} />
-
-      {/* screen */}
-      <div style={{
-        position: "absolute", top: 10, left: 10, width: 190, height: 150,
-        borderRadius: 10, background: "linear-gradient(160deg, #1D2038, #12141C)",
-        border: "1px solid #2E3245", padding: 14,
-      }}>
-        <div style={{ display: "flex", gap: 4, marginBottom: 10 }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#3A3560" }} />
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#3A3560" }} />
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#3A3560" }} />
-        </div>
-        <div style={{ width: 44, height: 44, borderRadius: 10, background: "rgba(124,92,252,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}>
-          <ShieldCheck size={22} color="#B8A9FD" />
-        </div>
-        <div style={{ display: "flex", justifyContent: "center", gap: 2 }}>
-          {[0, 1, 2, 3, 4].map((i) => <Star key={i} size={11} color="#8A6EFC" fill="#8A6EFC" />)}
-        </div>
-        <div style={{ width: "70%", height: 4, borderRadius: 2, background: "#2E3245", margin: "10px auto 0" }} />
-      </div>
-
-      {/* gavel */}
-      <div style={{
-        position: "absolute", bottom: 12, left: 60, width: 90, height: 90,
-        transform: "rotate(-25deg)",
-      }}>
-        <div style={{ width: 60, height: 14, borderRadius: 4, background: "linear-gradient(90deg, #6D4FE8, #4C3BCF)" }} />
-        <div style={{ width: 6, height: 46, background: "#4C3BCF", margin: "0 auto" }} />
-        <div style={{ width: 50, height: 8, borderRadius: 3, background: "#3A2E60", margin: "0 auto" }} />
-      </div>
-
-      {/* floating chips */}
-      <div style={{ position: "absolute", top: -6, right: 14 }}>
-        <FloatChip icon={ShieldCheck} />
-      </div>
-      <div style={{ position: "absolute", bottom: 30, right: -6 }}>
-        <FloatChip icon={CreditCard} />
-      </div>
-    </div>
-  );
-}
-
-function FloatChip({ icon: Icon }) {
-  return (
-    <div style={{
-      width: 40, height: 40, borderRadius: 11,
-      background: "#171A28", border: "1px solid #2E3245",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      boxShadow: "0 10px 22px rgba(0,0,0,0.4)",
-    }}>
-      <Icon size={17} color="#8A93F5" />
     </div>
   );
 }

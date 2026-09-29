@@ -218,5 +218,99 @@ class AuthService:
         return user, session_token, event_info
 
     @staticmethod
+    def register_or_login_judge(
+        db: Session,
+        name: str,
+        email: str,
+        judge_id: Optional[str] = None
+    ) -> Tuple[User, str, Optional[Dict[str, Any]]]:
+        from backend.app.models.judge_assignment import JudgeAssignment
+        from backend.app.models.track import Track
+
+        normalized_email = email.strip().lower()
+        assigned_id = judge_id.strip() if judge_id and judge_id.strip() else None
+
+        user = db.query(User).filter(User.email == normalized_email).first()
+        if not user and assigned_id:
+            user = db.query(User).filter(User.id == assigned_id).first()
+
+        if not user:
+            user_id = assigned_id or f"jdg_{uuid.uuid4().hex[:8]}"
+            user = User(
+                id=user_id,
+                name=name.strip() if name else "Judge",
+                email=normalized_email,
+                role="judge"
+            )
+            db.add(user)
+            db.flush()
+        else:
+            user.role = "judge"
+            if name and (not user.name or user.name == "Judge"):
+                user.name = name.strip()
+
+        # Ensure judge has track assignments
+        assignment_count = db.query(JudgeAssignment).filter(JudgeAssignment.judge_id == user.id).count()
+        if assignment_count == 0:
+            tracks = db.query(Track).filter(Track.event_id == "evt_01").all()
+            if not tracks:
+                tracks = db.query(Track).all()
+            for t in tracks:
+                db.add(JudgeAssignment(judge_id=user.id, track_id=t.id))
+
+        session_token = f"session_jdg_{uuid.uuid4().hex}"
+        new_session = SessionModel(
+            token=session_token,
+            user_id=user.id,
+            role="judge",
+            created_at=datetime.utcnow()
+        )
+        db.add(new_session)
+        db.commit()
+        db.refresh(user)
+
+        event_info = AuthService.get_event_info(db, "evt_01")
+        return user, session_token, event_info
+
+    @staticmethod
+    def login_judge(
+        db: Session,
+        email: str,
+        judge_id: Optional[str] = None
+    ) -> Tuple[User, str, Optional[Dict[str, Any]]]:
+        normalized_email = email.strip().lower()
+        assigned_id = judge_id.strip() if judge_id and judge_id.strip() else None
+
+        user = db.query(User).filter(User.email == normalized_email).first()
+        if not user and assigned_id:
+            user = db.query(User).filter(User.id == assigned_id).first()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Judge account not found. Please register first."
+            )
+
+        if user.role not in ("judge", "organizer", "admin"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access restricted: user is not a judge"
+            )
+
+        session_token = f"session_jdg_{uuid.uuid4().hex}"
+        new_session = SessionModel(
+            token=session_token,
+            user_id=user.id,
+            role="judge",
+            created_at=datetime.utcnow()
+        )
+        db.add(new_session)
+        db.commit()
+        db.refresh(user)
+
+        event_info = AuthService.get_event_info(db, "evt_01")
+        return user, session_token, event_info
+
+    @staticmethod
     def get_user_by_email(db: Session, email: str) -> Optional[User]:
         return db.query(User).filter(User.email == email.strip().lower()).first()

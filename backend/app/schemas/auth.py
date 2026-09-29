@@ -38,6 +38,25 @@ class ParticipantLoginRequest(BaseModel):
     student_id: Optional[str] = None
     event_id: Optional[str] = None
 
+class JudgeRegisterRequest(BaseModel):
+    name: str
+    email: EmailStr
+    judge_id: Optional[str] = None
+    judgeId: Optional[str] = None
+
+    def get_judge_id(self) -> str:
+        val = self.judge_id or self.judgeId
+        return val.strip() if val else ""
+
+class JudgeLoginRequest(BaseModel):
+    email: str
+    judge_id: Optional[str] = None
+    judgeId: Optional[str] = None
+
+    def get_judge_id(self) -> str:
+        val = self.judge_id or self.judgeId
+        return val.strip() if val else ""
+
 class UserResponse(BaseModel):
     id: str
     name: str

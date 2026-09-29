@@ -174,10 +174,10 @@ export default function HackathonsListing({ onNavigate, user, onLogout }) {
                     display: "flex", alignItems: "center", justifyContent: "center",
                     color: "#FFF", fontSize: 11, fontWeight: 700
                   }}>
-                    {user.name ? user.name.charAt(0).toUpperCase() : (user.role === "participant" ? "P" : "O")}
+                    {user.name ? user.name.charAt(0).toUpperCase() : (user.role === "participant" ? "P" : (user.role === "judge" ? "J" : "O"))}
                   </div>
                   <span style={{ fontSize: 13.5, color: "#E8E6F0", fontWeight: 600 }}>
-                    {user.name || (user.role === "participant" ? "Participant" : "Organizer")}
+                    {user.name || (user.role === "participant" ? "Participant" : (user.role === "judge" ? "Judge" : "Organizer"))}
                   </span>
                   <ChevronDown size={14} color="#9A96AC" />
                 </div>
@@ -198,6 +198,8 @@ export default function HackathonsListing({ onNavigate, user, onLogout }) {
                         if (onNavigate) {
                           if (user.role === "participant") {
                             onNavigate("Participant Dashboard");
+                          } else if (user.role === "judge") {
+                            onNavigate("Judge Dashboard");
                           } else {
                             onNavigate("Organizer Dashboard");
                           }

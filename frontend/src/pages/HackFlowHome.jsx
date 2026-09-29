@@ -89,6 +89,16 @@ export default function HackFlowHome({ onNavigate, user, onLogout }) {
     }
   };
 
+  const handleJudgeHackathonClick = () => {
+    if (currentUser && (currentUser.role === "judge" || currentUser.role === "organizer" || currentUser.role === "admin")) {
+      if (onNavigate) onNavigate("Judge Dashboard");
+      return;
+    }
+    if (onNavigate) {
+      onNavigate("Judge Registration");
+    }
+  };
+
   const handleLogout = () => {
     setUserDropdown(false);
     if (onLogout) {
@@ -178,10 +188,10 @@ export default function HackFlowHome({ onNavigate, user, onLogout }) {
                   }}
                 >
                   <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#7C5CFC", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFF", fontSize: 11, fontWeight: 700 }}>
-                    {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : (currentUser.role === "participant" ? "P" : "O")}
+                    {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : (currentUser.role === "participant" ? "P" : (currentUser.role === "judge" ? "J" : "O"))}
                   </div>
                   <span style={{ fontSize: 13.5, color: "#E8E6F0", fontWeight: 600 }}>
-                    {currentUser.name || (currentUser.role === "participant" ? "Participant" : "Organizer")}
+                    {currentUser.name || (currentUser.role === "participant" ? "Participant" : (currentUser.role === "judge" ? "Judge" : "Organizer"))}
                   </span>
                   <ChevronDown size={14} color="#9A96AC" />
                 </div>
@@ -202,6 +212,8 @@ export default function HackFlowHome({ onNavigate, user, onLogout }) {
                         if (onNavigate) {
                           if (currentUser?.role === "participant") {
                             onNavigate("Participant Dashboard");
+                          } else if (currentUser?.role === "judge") {
+                            onNavigate("Judge Dashboard");
                           } else {
                             onNavigate("Organizer Dashboard");
                           }
@@ -318,6 +330,7 @@ export default function HackFlowHome({ onNavigate, user, onLogout }) {
                 border="#254A34"
                 title="Judge a hackathon"
                 note="Review projects, give scores and help decide the winners."
+                onClick={handleJudgeHackathonClick}
               />
             </div>
           </div>

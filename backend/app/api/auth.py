@@ -6,6 +6,8 @@ from backend.app.schemas.auth import (
     OrganizerLoginRequest,
     ParticipantRegisterRequest,
     ParticipantLoginRequest,
+    JudgeRegisterRequest,
+    JudgeLoginRequest,
     UserResponse,
     AuthResponse
 )
@@ -62,13 +64,50 @@ def login_participant(
     response.set_cookie(key="session", value=token, httponly=False, samesite="lax", path="/")
     return AuthResponse(token=token, token_type="cookie", user=UserResponse.from_orm(user), event=event_info)
 
+@router.post("/register-judge", response_model=AuthResponse)
+def register_judge(
+    req: JudgeRegisterRequest,
+    response: Response,
+    db: Session = Depends(get_db)
+):
+    judge_id = req.get_judge_id()
+    user, token, event_info = AuthService.register_or_login_judge(
+        db=db,
+        name=req.name,
+        email=req.email,
+        judge_id=judge_id
+    )
+    response.set_cookie(key="session", value=token, httponly=False, samesite="lax", path="/")
+    return AuthResponse(token=token, token_type="cookie", user=UserResponse.from_orm(user), event=event_info)
+
+@router.post("/login-judge", response_model=AuthResponse)
+def login_judge(
+    req: JudgeLoginRequest,
+    response: Response,
+    db: Session = Depends(get_db)
+):
+    judge_id = req.get_judge_id()
+    user, token, event_info = AuthService.login_judge(
+        db=db,
+        email=req.email,
+        judge_id=judge_id
+    )
+    response.set_cookie(key="session", value=token, httponly=False, samesite="lax", path="/")
+    return AuthResponse(token=token, token_type="cookie", user=UserResponse.from_orm(user), event=event_info)
+
 @router.post("/login", response_model=AuthResponse)
 def login_user(
     req: OrganizerLoginRequest,
     response: Response,
     db: Session = Depends(get_db)
 ):
-    if req.role == "participant" or (not req.organizer_id and not req.org_id):
+    if req.role == "judge":
+        user, token, event_info = AuthService.login_judge(
+            db=db,
+            email=req.email,
+            judge_id=req.organizer_id or req.org_id
+        )
+    elif req.role == "participant" or (not req.organizer_id and not req.org_id):
         user, token, event_info = AuthService.login_participant(
             db=db,
             email=req.email,

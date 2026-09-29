@@ -40,6 +40,9 @@ const getPageFromPath = (path) => {
   if (cleanPath === "/judge" || cleanPath === "/judge/dashboard" || cleanPath === "/judge-dashboard") {
     return "Judge Dashboard";
   }
+  if (cleanPath === "/judge/register" || cleanPath === "/judge/registration" || cleanPath === "/judge-registration") {
+    return "Judge Registration";
+  }
   if (cleanPath.startsWith("/judge/projects/") || cleanPath.startsWith("/judge-project/")) {
     return "Project Evaluation";
   }
@@ -77,6 +80,9 @@ const getPathFromPage = (pageName) => {
     case "Judge Dashboard":
     case "judge-dashboard":
       return "/judge/dashboard";
+    case "Judge Registration":
+    case "judge-registration":
+      return "/judge/register";
     case "Project Evaluation":
     case "project-evaluation":
       return navParams.projectId ? `/judge/projects/${navParams.projectId}` : "/judge/dashboard";
@@ -381,6 +387,8 @@ export default function App() {
             user={user}
             onNavigate={handleNavigate}
             onLogout={handleLogout}
+            onRegistrationSuccess={handleRegistrationSuccess}
+            onLoginSuccess={handleLoginSuccess}
           />
         );
       case "Judge Dashboard":
