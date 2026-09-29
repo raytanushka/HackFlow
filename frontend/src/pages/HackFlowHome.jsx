@@ -30,9 +30,9 @@ const HACKATHONS = [
     name: "FinTech Buildathon",
     gradient: "linear-gradient(135deg, #6E2A6B, #B23A8C 55%, #2A1230)",
     icon: null,
-    dates: "10 – 12 Oct 2027",
-    teams: "36 teams",
-    tags: ["FinTech", "Web"],
+    dates: "10 – 12 Oct 2025 (Closed)",
+    teams: "Submissions Closed",
+    tags: ["FinTech", "Closed"],
     tagColors: ["#3A1E45", "#2E2560"],
   },
 ];
@@ -60,15 +60,20 @@ export default function HackFlowHome({ onNavigate, user, onLogout }) {
   const handleJoinHackathonClick = () => {
     if (currentUser && currentUser.role === "participant") {
       // Already authenticated participant!
-      // Reuse existing participant session and open the appropriate hackathon/join flow
+      // Reuse existing participant session and open the open hackathon
       if (onNavigate) {
-        onNavigate("Participant Dashboard", { eventId: "evt_01", name: "Sample Hack 2026" });
+        onNavigate("Hackathon Detail", { eventId: "evt_smart_hack_2027", name: "Smart Hack 2027" });
       }
       return;
     }
     // Not authenticated or other role
     if (onNavigate) {
-      onNavigate("Participant Registration", { eventId: "evt_01", name: "Sample Hack 2026", redirectTo: "Participant Dashboard" });
+      onNavigate("Login", {
+        role: "participant",
+        eventId: "evt_smart_hack_2027",
+        name: "Smart Hack 2027",
+        redirectTo: "Hackathon Detail"
+      });
     }
   };
 

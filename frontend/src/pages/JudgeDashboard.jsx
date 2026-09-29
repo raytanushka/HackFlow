@@ -366,8 +366,8 @@ const currentTrack =
             <button
               onClick={() => {
                 if (onLogout) onLogout();
-                if (onNavigate) onNavigate("Judge Registration");
-                else navigate("/judge/register");
+                if (onNavigate) onNavigate("Login", { role: "judge" });
+                else navigate("/login?role=judge");
               }}
               style={{
                 background: "linear-gradient(135deg, #8A6EFC, #6D4FE8)",

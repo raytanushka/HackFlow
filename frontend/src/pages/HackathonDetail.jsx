@@ -110,30 +110,30 @@ const EVENT_METADATA = {
   },
   evt_fintech: {
     name: "FinTech Buildathon",
-    status: "Live",
-    dates: "10 Oct – 12 Oct 2027",
+    status: "Closed",
+    dates: "10 Oct – 12 Oct 2025 (Closed)",
     duration: "48 Hours",
-    durationSub: "Oct 10 – Oct 12, 2027",
-    desc: "Build solutions for a smarter, safer and more inclusive financial future.",
+    durationSub: "Oct 10 – Oct 12, 2025",
+    desc: "Build solutions for a smarter, safer and more inclusive financial future. Submissions closed.",
     about: "FinTech Buildathon brings together builders, designers, and developers to build novel decentralized finance, payments, security, and financial inclusion tools.",
-    isClosed: false,
+    isClosed: true,
     datesList: [
-      { label: "Registration Opens", date: "Sep 15, 2027" },
-      { label: "Registration Closes", date: "Oct 5, 2027" },
-      { label: "Hackathon Begins", date: "Oct 10, 2027 (9:00 AM)" },
-      { label: "Submission Deadline", date: "Oct 12, 2027 (6:00 PM)" },
-      { label: "Results Announcement", date: "Oct 15, 2027" },
+      { label: "Registration Opens", date: "Sep 15, 2025" },
+      { label: "Registration Closes", date: "Oct 5, 2025" },
+      { label: "Hackathon Begins", date: "Oct 10, 2025 (9:00 AM)" },
+      { label: "Submission Deadline", date: "Oct 12, 2025 (6:00 PM)" },
+      { label: "Results Announcement", date: "Oct 15, 2025" },
     ],
   },
   evt_greentech: {
     name: "Green Tech Hackathon",
-    status: "Upcoming",
-    dates: "1 Oct – 4 Oct 2026",
+    status: "Closed",
+    dates: "1 Oct – 4 Oct 2026 (Closed)",
     duration: "72 Hours",
     durationSub: "Oct 1 – Oct 4, 2026",
-    desc: "Create technology that helps build a more sustainable future.",
+    desc: "Create technology that helps build a more sustainable future. Submissions closed.",
     about: "Green Tech Hackathon focuses on environment, IoT, and clean energy prototypes.",
-    isClosed: false,
+    isClosed: true,
     datesList: [
       { label: "Registration Opens", date: "Sep 1, 2026" },
       { label: "Registration Closes", date: "Sep 25, 2026" },
@@ -144,13 +144,13 @@ const EVENT_METADATA = {
   },
   evt_healthtech: {
     name: "HealthTech Hackathon",
-    status: "Upcoming",
-    dates: "18 Oct – 20 Oct 2026",
+    status: "Closed",
+    dates: "18 Oct – 20 Oct 2026 (Closed)",
     duration: "48 Hours",
     durationSub: "Oct 18 – Oct 20, 2026",
-    desc: "Innovate solutions for better healthcare, accessibility and patient care.",
+    desc: "Innovate solutions for better healthcare, accessibility and patient care. Submissions closed.",
     about: "HealthTech Hackathon focuses on telemedicine, AI diagnostic assistants, and assistive technologies.",
-    isClosed: false,
+    isClosed: true,
     datesList: [
       { label: "Registration Opens", date: "Sep 15, 2026" },
       { label: "Registration Closes", date: "Oct 10, 2026" },
@@ -229,9 +229,10 @@ export default function HackathonDetail({ onNavigate, eventId = "evt_smart_hack_
   }, [user, eventId]);
 
   const meta = EVENT_METADATA[eventId] || {};
-  const isFixtureClosed = dbEvent ? !dbEvent.is_open : (eventId === "evt_01" || meta.isClosed);
-  const eventName = name || (dbEvent && dbEvent.name) || meta.name || (isFixtureClosed ? "Sample Hack 2026" : "Smart Hack 2027");
-  const eventStatus = (dbEvent && (dbEvent.is_open ? "Live" : "Closed")) || meta.status || (isFixtureClosed ? "Closed" : "Live");
+  const isSmartHack = eventId === "evt_smart_hack_2027" || (dbEvent && (dbEvent.id === "evt_smart_hack_2027" || dbEvent.name === "Smart Hack 2027")) || (!dbEvent && name === "Smart Hack 2027");
+  const isFixtureClosed = !isSmartHack || (dbEvent ? !dbEvent.is_open : (eventId === "evt_01" || meta.isClosed !== false));
+  const eventName = name || (dbEvent && dbEvent.name) || meta.name || (isSmartHack ? "Smart Hack 2027" : "Sample Hack 2026");
+  const eventStatus = isFixtureClosed ? "Closed" : ((dbEvent && dbEvent.is_open) ? "Live" : "Closed");
   const eventDates = meta.dates || (isFixtureClosed ? "1 Mar 2026 (Closed)" : (dbEvent ? "Active – Submissions Open" : "Mar 1, 2027 – Mar 3, 2027"));
   const eventDesc = (dbEvent && dbEvent.description) || meta.desc || (isFixtureClosed
     ? "Official fixture hackathon dataset used for acceptance tests. Submissions are closed."

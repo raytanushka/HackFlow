@@ -70,15 +70,10 @@ def register_judge(
     response: Response,
     db: Session = Depends(get_db)
 ):
-    judge_id = req.get_judge_id()
-    user, token, event_info = AuthService.register_or_login_judge(
-        db=db,
-        name=req.name,
-        email=req.email,
-        judge_id=judge_id
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Judge registration is not available."
     )
-    response.set_cookie(key="session", value=token, httponly=False, samesite="lax", path="/")
-    return AuthResponse(token=token, token_type="cookie", user=UserResponse.from_orm(user), event=event_info)
 
 @router.post("/login-judge", response_model=AuthResponse)
 def login_judge(

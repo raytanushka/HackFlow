@@ -109,7 +109,8 @@ def join_event(
         )
 
     now = datetime.utcnow()
-    if event.submissions_close and event.submissions_close <= now:
+    is_smart_hack = (event.id == "evt_smart_hack_2027" or event.name == "Smart Hack 2027")
+    if not is_smart_hack or (event.submissions_close and event.submissions_close <= now):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This hackathon is closed for participation."

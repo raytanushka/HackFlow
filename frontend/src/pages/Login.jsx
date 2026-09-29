@@ -412,55 +412,43 @@ export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialR
             </button>
           </form>
 
-          <div style={{
-            marginTop: 24, paddingTop: 20,
-            borderTop: "1px solid #1D2029",
-            textAlign: "center", fontSize: 13.5, color: "#9A96AC"
-          }}>
-            {role === "participant" ? (
-              <>
-                Don't have a participant account?{" "}
-                <button
-                  type="button"
-                  onClick={() => onNavigate && onNavigate("Participant Registration", { eventId, name: displayEventName, redirectTo })}
-                  style={{
-                    background: "none", border: "none", color: "#8A6EFC",
-                    fontWeight: 600, cursor: "pointer", padding: 0, fontSize: 13.5
-                  }}
-                >
-                  Register here
-                </button>
-              </>
-            ) : role === "judge" ? (
-              <>
-                Don't have a judge account?{" "}
-                <button
-                  type="button"
-                  onClick={() => onNavigate && onNavigate("Judge Registration")}
-                  style={{
-                    background: "none", border: "none", color: "#8A6EFC",
-                    fontWeight: 600, cursor: "pointer", padding: 0, fontSize: 13.5
-                  }}
-                >
-                  Register here
-                </button>
-              </>
-            ) : (
-              <>
-                Don't have an organizer account?{" "}
-                <button
-                  type="button"
-                  onClick={() => onNavigate && onNavigate("Organizer Registration")}
-                  style={{
-                    background: "none", border: "none", color: "#8A6EFC",
-                    fontWeight: 600, cursor: "pointer", padding: 0, fontSize: 13.5
-                  }}
-                >
-                  Register here
-                </button>
-              </>
-            )}
-          </div>
+          {role !== "judge" && (
+            <div style={{
+              marginTop: 24, paddingTop: 20,
+              borderTop: "1px solid #1D2029",
+              textAlign: "center", fontSize: 13.5, color: "#9A96AC"
+            }}>
+              {role === "participant" ? (
+                <>
+                  Don't have a participant account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => onNavigate && onNavigate("Participant Registration", { eventId, name: displayEventName, redirectTo })}
+                    style={{
+                      background: "none", border: "none", color: "#8A6EFC",
+                      fontWeight: 600, cursor: "pointer", padding: 0, fontSize: 13.5
+                    }}
+                  >
+                    Register here
+                  </button>
+                </>
+              ) : (
+                <>
+                  Don't have an organizer account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => onNavigate && onNavigate("Organizer Registration")}
+                    style={{
+                      background: "none", border: "none", color: "#8A6EFC",
+                      fontWeight: 600, cursor: "pointer", padding: 0, fontSize: 13.5
+                    }}
+                  >
+                    Register here
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

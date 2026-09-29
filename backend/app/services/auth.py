@@ -224,72 +224,10 @@ class AuthService:
         email: str,
         judge_id: Optional[str] = None
     ) -> Tuple[User, str, Optional[Dict[str, Any]]]:
-        from backend.app.models.judge_assignment import JudgeAssignment
-        from backend.app.models.track import Track
-
-        normalized_email = email.strip().lower() if email else ""
-        assigned_id = judge_id.strip() if judge_id and judge_id.strip() else None
-
-        if not normalized_email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email is required"
-            )
-
-        # Check if email is already in use
-        if db.query(User).filter(User.email == normalized_email).first():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
-            )
-
-        # Check if judge_id is already in use
-        if assigned_id:
-            if db.query(User).filter(User.id == assigned_id).first():
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Judge ID already in use"
-                )
-
-        user_id = assigned_id or f"jdg_{uuid.uuid4().hex[:8]}"
-        user = User(
-            id=user_id,
-            name=name.strip() if name else "Judge",
-            email=normalized_email,
-            role="judge"
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Judge registration is not available."
         )
-        db.add(user)
-        try:
-            db.flush()
-        except IntegrityError:
-            db.rollback()
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Judge ID already in use"
-            )
-
-        # Ensure judge has track assignments
-        assignment_count = db.query(JudgeAssignment).filter(JudgeAssignment.judge_id == user.id).count()
-        if assignment_count == 0:
-            tracks = db.query(Track).filter(Track.event_id == "evt_01").all()
-            if not tracks:
-                tracks = db.query(Track).all()
-            for t in tracks:
-                db.add(JudgeAssignment(judge_id=user.id, track_id=t.id))
-
-        session_token = f"session_jdg_{uuid.uuid4().hex}"
-        new_session = SessionModel(
-            token=session_token,
-            user_id=user.id,
-            role="judge",
-            created_at=datetime.utcnow()
-        )
-        db.add(new_session)
-        db.commit()
-        db.refresh(user)
-
-        event_info = AuthService.get_event_info(db, "evt_01")
-        return user, session_token, event_info
 
     @staticmethod
     def register_or_login_judge(
@@ -298,7 +236,10 @@ class AuthService:
         email: str,
         judge_id: Optional[str] = None
     ) -> Tuple[User, str, Optional[Dict[str, Any]]]:
-        return AuthService.register_judge(db=db, name=name, email=email, judge_id=judge_id)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Judge registration is not available."
+        )
 
     @staticmethod
     def login_judge(

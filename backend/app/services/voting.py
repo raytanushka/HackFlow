@@ -119,7 +119,8 @@ class VotingService:
             event = db.query(Event).order_by(Event.submissions_close.desc()).first()
 
         now = datetime.utcnow()
-        is_submissions_open = event.submissions_close > now if event.submissions_close else False
+        is_smart_hack = (event.id == "evt_smart_hack_2027" or event.name == "Smart Hack 2027")
+        is_submissions_open = is_smart_hack and (event.submissions_close > now if event.submissions_close else False)
         voting_status = VotingService.get_event_voting_status(event)
 
         # 2. Find participant's team in this event

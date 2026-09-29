@@ -11,7 +11,8 @@ class EventService:
         now = datetime.utcnow()
         result = []
         for e in events:
-            is_open = e.submissions_close > now if e.submissions_close else False
+            is_smart_hack = (e.id == "evt_smart_hack_2027" or e.name == "Smart Hack 2027")
+            is_open = is_smart_hack and (e.submissions_close > now if e.submissions_close else False)
             result.append({
                 "id": e.id,
                 "name": e.name,
@@ -28,7 +29,8 @@ class EventService:
         if not event:
             return None
         now = datetime.utcnow()
-        is_open = event.submissions_close > now if event.submissions_close else False
+        is_smart_hack = (event.id == "evt_smart_hack_2027" or event.name == "Smart Hack 2027")
+        is_open = is_smart_hack and (event.submissions_close > now if event.submissions_close else False)
         tracks = db.query(Track).filter(Track.event_id == event_id).all()
         return {
             "id": event.id,

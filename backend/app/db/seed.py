@@ -162,7 +162,7 @@ def seed_database():
             db.commit()
             print("Demo event 'Smart Hack 2027' seeded successfully.")
 
-        # Seed FinTech Buildathon
+        # Seed FinTech Buildathon (Closed)
         fintech_event_id = "evt_fintech"
         existing_fintech = db.query(Event).filter(Event.id == fintech_event_id).first()
         if not existing_fintech:
@@ -170,7 +170,7 @@ def seed_database():
                 id=fintech_event_id,
                 name="FinTech Buildathon",
                 description="Build solutions for a smarter, safer and more inclusive financial future.",
-                submissions_close=datetime(2027, 10, 12, 18, 0, 0),
+                submissions_close=datetime(2025, 1, 1, 0, 0, 0),
                 organizer_id="usr_organizer"
             )
             db.add(fintech_event)
@@ -183,7 +183,10 @@ def seed_database():
                     name=trk_name
                 ))
             db.commit()
-            print("Event 'FinTech Buildathon' seeded successfully.")
+            print("Event 'FinTech Buildathon' seeded successfully (closed).")
+        else:
+            existing_fintech.submissions_close = datetime(2025, 1, 1, 0, 0, 0)
+            db.commit()
 
         print("\n==================================================")
         print("DOGFOOD 2026 SEEDED ACCEPTANCE CREDENTIALS")

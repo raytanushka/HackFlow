@@ -30,7 +30,7 @@ const DEFAULT_HACKATHONS = [
     icon: Leaf,
     iconBg: "linear-gradient(135deg, #1F4D2E, #3B7A4A)",
     btnBg: "linear-gradient(135deg, #22A45D, #178A4C)",
-    closed: false,
+    closed: true,
   },
   {
     id: "evt_fintech",
@@ -43,7 +43,7 @@ const DEFAULT_HACKATHONS = [
     icon: TrendingUp,
     iconBg: "linear-gradient(135deg, #1E3A6E, #2E5FA3)",
     btnBg: "linear-gradient(135deg, #3B82F6, #2563EB)",
-    closed: false,
+    closed: true,
   },
   {
     id: "evt_healthtech",
@@ -56,7 +56,7 @@ const DEFAULT_HACKATHONS = [
     icon: HeartPulse,
     iconBg: "linear-gradient(135deg, #6E2A6B, #B23A8C)",
     btnBg: "linear-gradient(135deg, #D946A6, #B23A8C)",
-    closed: false,
+    closed: true,
   },
   {
     id: "evt_campus_buildathon",
@@ -82,7 +82,7 @@ const DEFAULT_HACKATHONS = [
     icon: GraduationCap,
     iconBg: "linear-gradient(135deg, #164E4A, #1D8A7E)",
     btnBg: "linear-gradient(135deg, #2DD4BF, #17A08F)",
-    closed: false,
+    closed: true,
   },
 ];
 
@@ -103,16 +103,20 @@ export default function HackathonsListing({ onNavigate, user, onLogout }) {
               (e) => e.name.toLowerCase() === h.name.toLowerCase() ||
                      e.id === (h.name === "Smart Hack 2027" ? "evt_smart_hack_2027" : h.name === "Sample Hack 2026" ? "evt_01" : h.id)
             );
+            const isSmartHack = h.name === "Smart Hack 2027" || h.id === "evt_smart_hack_2027" || (matched && (matched.id === "evt_smart_hack_2027" || matched.name === "Smart Hack 2027"));
             if (matched) {
               return {
                 ...h,
                 id: matched.id,
-                closed: !matched.is_open,
+                closed: !isSmartHack || !matched.is_open,
                 name: matched.name,
                 desc: matched.description || h.desc,
               };
             }
-            return h;
+            return {
+              ...h,
+              closed: !isSmartHack,
+            };
           });
         });
       })
