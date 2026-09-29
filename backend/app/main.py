@@ -5,12 +5,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.app.api.auth import router as auth_router
 from backend.app.api.events import router as events_router
 from backend.app.api.projects import router as projects_router
+from backend.app.api.results import router as results_router
+from backend.app.api.voting import router as voting_router
 
 app = FastAPI(title="HackFlow API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,6 +46,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 app.include_router(auth_router)
 app.include_router(events_router)
 app.include_router(projects_router)
+app.include_router(results_router)
+app.include_router(voting_router)
 
 @app.get("/")
 def root():

@@ -120,7 +120,7 @@ export default function Login({ onLoginSuccess, onNavigate, redirectTo, initialR
       }
       if (onNavigate) {
         if (role === "participant") {
-          onNavigate(redirectTo || "Hackathons Listing", { eventId, name: (data.event && data.event.name) || displayEventName });
+          onNavigate(redirectTo || "Participant Dashboard", { eventId, name: (data.event && data.event.name) || displayEventName });
         } else {
           onNavigate("Organizer Dashboard");
         }

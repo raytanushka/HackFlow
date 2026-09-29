@@ -6,8 +6,10 @@ claimed = ["T1"]
 pitch = "HackFlow hackathon management platform"
 
 [auth]
+organizer   = "Cookie: session=session_org_hackflow_2026_token"
 participant = "Cookie: session=session_prt_hackflow_2026_token"
 
 [routes]
-gallery = "/projects"
-submit = "/api/events/evt_01/projects"
+gallery    = "/projects"
+submit     = "/api/events/evt_01/projects"
+csv_export = "/api/export.csv"

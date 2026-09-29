@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Zap, ArrowLeft, ArrowRight, Users, User, CreditCard, Mail, Building2,
-  Code2, Lightbulb, Trophy, ChevronDown, Menu, X,
+  Code2, Lightbulb, Trophy, ChevronDown, Menu, X, LayoutDashboard,
 } from "lucide-react";
 
 const NAV = ["Home", "Hackathons", "Projects", "About"];
@@ -14,12 +14,15 @@ const PERKS = [
 
 export default function ParticipantRegistration({
   onNavigate,
-  eventId = "evt_smart_hack_2027",
-  eventName,
+  eventId = "evt_01",
+  eventName = "Sample Hack 2026",
   onRegistrationSuccess,
-  redirectTo
+  redirectTo,
+  user,
+  onLogout
 }) {
   const [navOpen, setNavOpen] = useState(false);
+  const [userDropdown, setUserDropdown] = useState(false);
   const [dbEvent, setDbEvent] = useState(null);
   const [name, setName] = useState("");
   const [studentId, setStudentId] = useState("");
@@ -46,10 +49,38 @@ export default function ParticipantRegistration({
     || (!isGenericDefault && eventName ? eventName : null)
     || (eventId === "evt_fintech" ? "FinTech Buildathon" : (eventId === "evt_01" ? "Sample Hack 2026" : "FinTech Buildathon"));
 
-  const canContinue = name.trim() && studentId.trim() && email.trim() && college.trim();
+  useEffect(() => {
+    // If the participant is already authenticated, reuse session and do not show registration form again
+    if (user && user.role === "participant") {
+      if (onNavigate) {
+        onNavigate(redirectTo || "Participant Dashboard", {
+          eventId,
+          name: displayEventName
+        });
+      }
+    }
+  }, [user, redirectTo, eventId, displayEventName, onNavigate]);
 
-  const handleContinue = async () => {
-    if (!canContinue || loading) return;
+  const canContinue = Boolean(name.trim() && studentId.trim() && email.trim() && college.trim());
+
+  const handleContinue = async (e) => {
+    if (e && e.preventDefault) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (loading) return;
+
+    if (!name.trim() || !studentId.trim() || !email.trim() || !college.trim()) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email.trim())) {
+      setError("Please enter a valid email address (e.g. name@college.edu).");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -60,7 +91,7 @@ export default function ParticipantRegistration({
         credentials: "include",
         body: JSON.stringify({
           name: name.trim(),
-          email: email.trim(),
+          email: email.trim().toLowerCase(),
           student_id: studentId.trim(),
           college: college.trim(),
           event_id: eventId
@@ -111,7 +142,7 @@ export default function ParticipantRegistration({
       }
       setSubmitted(true);
       if (onNavigate) {
-        onNavigate(redirectTo || "Submission Form", { eventId, name: (data.event && data.event.name) || displayEventName });
+        onNavigate(redirectTo || "Participant Dashboard", { eventId, name: (data.event && data.event.name) || displayEventName });
       }
     } catch (err) {
       const msg = typeof err === "string" ? err : (err?.message || "Failed to register participant.");
@@ -174,21 +205,98 @@ export default function ParticipantRegistration({
 
           <div className="desktop-nav" style={{ gap: 28, flex: 1 }}>
             {NAV.map((item) => (
-              <a key={item} href="#" style={{ color: "#9A96AC", textDecoration: "none", fontSize: 14.5, fontWeight: 500 }}>
+              <a key={item} href="#" onClick={(e) => {
+                e.preventDefault();
+                if (item === "Home" && onNavigate) onNavigate("HackFlow Home");
+                if (item === "Hackathons" && onNavigate) onNavigate("Hackathons Listing");
+              }} style={{ color: "#9A96AC", textDecoration: "none", fontSize: 14.5, fontWeight: 500 }}>
                 {item}
               </a>
             ))}
           </div>
 
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14 }}>
-            <div className="desktop-nav" style={{
-              alignItems: "center", gap: 8, border: "1px solid #262A34", borderRadius: 9,
-              padding: "8px 14px", cursor: "pointer",
-            }}>
-              <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#262A34" }} />
-              <span style={{ fontSize: 13.5, color: "#C7C4D6" }}>Demo User</span>
-              <ChevronDown size={14} color="#5B5F6D" />
-            </div>
+            {user ? (
+              <div style={{ position: "relative" }}>
+                <div
+                  className="desktop-nav"
+                  onClick={() => setUserDropdown(!userDropdown)}
+                  style={{
+                    alignItems: "center", gap: 8, border: "1px solid #7C5CFC", borderRadius: 9,
+                    padding: "8px 14px", cursor: "pointer", background: "rgba(124,92,252,0.12)",
+                    display: "flex"
+                  }}
+                >
+                  <div style={{
+                    width: 22, height: 22, borderRadius: "50%", background: "#7C5CFC",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#FFF", fontSize: 11, fontWeight: 700
+                  }}>
+                    {user.name ? user.name.charAt(0).toUpperCase() : (user.role === "participant" ? "P" : "O")}
+                  </div>
+                  <span style={{ fontSize: 13.5, color: "#E8E6F0", fontWeight: 600 }}>
+                    {user.name || (user.role === "participant" ? "Participant" : "Organizer")}
+                  </span>
+                  <ChevronDown size={14} color="#9A96AC" />
+                </div>
+
+                {userDropdown && (
+                  <div style={{
+                    position: "absolute", top: "115%", right: 0, width: 200, background: "#14161C",
+                    border: "1px solid #262A34", borderRadius: 10, padding: 8, zIndex: 100,
+                    boxShadow: "0 10px 25px rgba(0,0,0,0.5)"
+                  }}>
+                    <div style={{ padding: "8px 12px", borderBottom: "1px solid #202430", marginBottom: 6 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#E8E6F0" }}>{user.name}</div>
+                      <div style={{ fontSize: 11.5, color: "#9A96AC", overflow: "hidden", textOverflow: "ellipsis" }}>{user.email}</div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setUserDropdown(false);
+                        if (onNavigate) {
+                          if (user.role === "participant") {
+                            onNavigate("Participant Dashboard");
+                          } else {
+                            onNavigate("Organizer Dashboard");
+                          }
+                        }
+                      }}
+                      style={{
+                        width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px",
+                        background: "none", border: "none", color: "#C7C4D6", fontSize: 13,
+                        cursor: "pointer", borderRadius: 6, textAlign: "left"
+                      }}
+                    >
+                      <LayoutDashboard size={14} color="#8A6EFC" /> Dashboard
+                    </button>
+                    <button
+                      onClick={() => {
+                        setUserDropdown(false);
+                        if (onLogout) onLogout();
+                      }}
+                      style={{
+                        width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px",
+                        background: "none", border: "none", color: "#F87171", fontSize: 13,
+                        cursor: "pointer", borderRadius: 6, textAlign: "left", marginTop: 4
+                      }}
+                    >
+                      Log Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => onNavigate && onNavigate("Login", { role: "participant", eventId, redirectTo })}
+                style={{
+                  background: "transparent", border: "1px solid #7C5CFC", color: "#B8A9FD",
+                  padding: "8px 16px", borderRadius: 8, fontSize: 13.5, fontWeight: 500,
+                  cursor: "pointer"
+                }}
+              >
+                Log In
+              </button>
+            )}
             <button
               className="mobile-toggle"
               onClick={() => setNavOpen((n) => !n)}
@@ -322,6 +430,7 @@ export default function ParticipantRegistration({
 
                     <button
                       type="submit"
+                      onClick={(e) => handleContinue(e)}
                       disabled={!canContinue || loading}
                       style={{
                         width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,

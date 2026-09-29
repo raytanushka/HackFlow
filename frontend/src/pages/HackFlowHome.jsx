@@ -57,6 +57,21 @@ export default function HackFlowHome({ onNavigate, user, onLogout }) {
     }
   }, [user]);
 
+  const handleJoinHackathonClick = () => {
+    if (currentUser && currentUser.role === "participant") {
+      // Already authenticated participant!
+      // Reuse existing participant session and open the appropriate hackathon/join flow
+      if (onNavigate) {
+        onNavigate("Participant Dashboard", { eventId: "evt_01", name: "Sample Hack 2026" });
+      }
+      return;
+    }
+    // Not authenticated or other role
+    if (onNavigate) {
+      onNavigate("Participant Registration", { eventId: "evt_01", name: "Sample Hack 2026", redirectTo: "Participant Dashboard" });
+    }
+  };
+
   const handleCreateHackathonClick = () => {
     if (currentUser && currentUser.role === "organizer") {
       if (onNavigate) onNavigate("Organizer Dashboard");
@@ -75,14 +90,17 @@ export default function HackFlowHome({ onNavigate, user, onLogout }) {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("hackflow_user");
-    localStorage.removeItem("hackflow_token");
-    localStorage.removeItem("hackflow_participant");
-    localStorage.removeItem("hackflow_registered");
-    localStorage.removeItem("hackflow_organizer_registered");
-    setCurrentUser(null);
     setUserDropdown(false);
-    if (onLogout) onLogout();
+    if (onLogout) {
+      onLogout();
+    } else {
+      localStorage.removeItem("hackflow_user");
+      localStorage.removeItem("hackflow_token");
+      localStorage.removeItem("hackflow_participant");
+      localStorage.removeItem("hackflow_registered");
+      localStorage.removeItem("hackflow_organizer_registered");
+      setCurrentUser(null);
+    }
   };
 
   return (
@@ -160,10 +178,10 @@ export default function HackFlowHome({ onNavigate, user, onLogout }) {
                   }}
                 >
                   <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#7C5CFC", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFF", fontSize: 11, fontWeight: 700 }}>
-                    {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "O"}
+                    {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : (currentUser.role === "participant" ? "P" : "O")}
                   </div>
                   <span style={{ fontSize: 13.5, color: "#E8E6F0", fontWeight: 600 }}>
-                    {currentUser.name || "Organizer"}
+                    {currentUser.name || (currentUser.role === "participant" ? "Participant" : "Organizer")}
                   </span>
                   <ChevronDown size={14} color="#9A96AC" />
                 </div>
@@ -174,8 +192,21 @@ export default function HackFlowHome({ onNavigate, user, onLogout }) {
                     border: "1px solid #262A34", borderRadius: 10, padding: 8, zIndex: 100,
                     boxShadow: "0 10px 25px rgba(0,0,0,0.5)"
                   }}>
+                    <div style={{ padding: "8px 12px", borderBottom: "1px solid #202430", marginBottom: 6 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#E8E6F0" }}>{currentUser.name}</div>
+                      <div style={{ fontSize: 11.5, color: "#9A96AC", overflow: "hidden", textOverflow: "ellipsis" }}>{currentUser.email}</div>
+                    </div>
                     <button
-                      onClick={() => { setUserDropdown(false); if (onNavigate) onNavigate("Organizer Dashboard"); }}
+                      onClick={() => {
+                        setUserDropdown(false);
+                        if (onNavigate) {
+                          if (currentUser?.role === "participant") {
+                            onNavigate("Participant Dashboard");
+                          } else {
+                            onNavigate("Organizer Dashboard");
+                          }
+                        }
+                      }}
                       style={{
                         width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px",
                         background: "none", border: "none", color: "#C7C4D6", fontSize: 13.5,
@@ -269,7 +300,7 @@ export default function HackFlowHome({ onNavigate, user, onLogout }) {
                 border="#3A3560"
                 title="Join a hackathon"
                 note="Explore ongoing hackathons and be a part of the action."
-                onClick={() => onNavigate && onNavigate("Participant Registration", { eventId: "evt_smart_hack_2027" })}
+                onClick={handleJoinHackathonClick}
               />
               <ActionCard
                 icon={Plus}

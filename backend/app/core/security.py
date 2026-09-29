@@ -46,3 +46,13 @@ def get_current_session(request: Request, db: DBSession = Depends(get_db)):
         "role": db_session.role,
         "user": user
     }
+
+def require_organizer(request: Request, db: DBSession = Depends(get_db)):
+    session = get_current_session(request, db)
+    if session.get("role") != "organizer":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: organizer role required",
+        )
+    return session
+

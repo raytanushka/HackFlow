@@ -11,6 +11,7 @@ from backend.app.schemas.auth import (
 )
 from backend.app.services.auth import AuthService
 from backend.app.core.security import get_current_session
+from backend.app.models.session import Session as SessionModel
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -101,12 +102,21 @@ def get_current_user(
         session_data = get_current_session(request, db)
         if session_data and session_data.get("user"):
             return UserResponse.from_orm(session_data["user"])
+    except HTTPException as e:
+        raise e
     except Exception:
         pass
 
-    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email query parameter or session required")
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session required or expired")
 
 @router.post("/logout")
-def logout(response: Response):
+def logout(request: Request, response: Response, db: Session = Depends(get_db)):
+    try:
+        session_data = get_current_session(request, db)
+        if session_data and session_data.get("session_token"):
+            db.query(SessionModel).filter(SessionModel.token == session_data["session_token"]).delete()
+            db.commit()
+    except Exception:
+        pass
     response.delete_cookie(key="session", path="/")
     return {"message": "Logged out successfully"}

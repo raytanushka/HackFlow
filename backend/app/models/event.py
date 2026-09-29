@@ -8,4 +8,6 @@ class Event(Base):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     submissions_close = Column(DateTime, nullable=False)
+    voting_open = Column(DateTime, nullable=True)
+    voting_close = Column(DateTime, nullable=True)
     organizer_id = Column(String, nullable=True)

@@ -12,15 +12,34 @@ router = APIRouter(tags=["projects"])
 @router.get("/projects")
 @router.get("/api/projects")
 def get_public_projects(
+    request: Request,
     event_id: Optional[str] = Query(None),
+    seed: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
     """
     Public project gallery endpoint.
     Requires no authentication and returns HTTP 200.
     Returns project data from the database (including fixture projects).
+    Supports randomized ballot ordering (via seed parameter or participant session).
+    Hides vote totals during active voting window.
     """
-    return ProjectService.list_projects(db, event_id=event_id)
+    user_id = None
+    if request:
+        try:
+            session = get_current_session(request, db)
+            user_id = session.get("user_id")
+        except Exception:
+            pass
+
+    effective_seed = seed or (user_id if (user_id and event_id) else None)
+
+    return ProjectService.list_projects(
+        db,
+        event_id=event_id,
+        seed=effective_seed,
+        user_id=user_id
+    )
 
 @router.post("/projects/new", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
 def submit_project_generic(

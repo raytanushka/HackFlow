@@ -164,6 +164,7 @@ const EVENT_METADATA = {
 export default function HackathonDetail({ onNavigate, eventId = "evt_smart_hack_2027", name, user }) {
   const [joined, setJoined] = useState(false);
   const [dbEvent, setDbEvent] = useState(null);
+  const [participantStatus, setParticipantStatus] = useState(null);
   const isParticipant = Boolean(user && (user.role === "participant" || user.role === "organizer"));
 
   useEffect(() => {
@@ -176,6 +177,23 @@ export default function HackathonDetail({ onNavigate, eventId = "evt_smart_hack_
         .catch(() => {});
     }
   }, [eventId]);
+
+  useEffect(() => {
+    if (user && user.role === "participant") {
+      const token = localStorage.getItem("hackflow_token") || user.token;
+      const headers = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      fetch(`http://localhost:8000/api/participant/status?event_id=${encodeURIComponent(eventId)}`, {
+        headers,
+        credentials: "include"
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data) setParticipantStatus(data);
+        })
+        .catch(() => {});
+    }
+  }, [user, eventId]);
 
   const meta = EVENT_METADATA[eventId] || {};
   const isFixtureClosed = dbEvent ? !dbEvent.is_open : (eventId === "evt_01" || meta.isClosed);
@@ -415,7 +433,11 @@ export default function HackathonDetail({ onNavigate, eventId = "evt_smart_hack_
                   </div>
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 600, color: "#E8E6F0" }}>Logged in as {user.name || user.email}</div>
-                    <div style={{ fontSize: 12.5, color: "#9A96AC", marginTop: 2 }}>You are authenticated and ready to submit your project.</div>
+                    <div style={{ fontSize: 12.5, color: "#9A96AC", marginTop: 2 }}>
+                      {participantStatus?.team
+                        ? `You are registered with team "${participantStatus.team.name}".`
+                        : "You are authenticated and ready to submit your project."}
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -464,6 +486,13 @@ export default function HackathonDetail({ onNavigate, eventId = "evt_smart_hack_
                     return;
                   }
 
+                  if (participantStatus?.team) {
+                    if (onNavigate) {
+                      onNavigate("Participant Dashboard", { eventId, name: eventName });
+                    }
+                    return;
+                  }
+
                   setJoined(true);
                   if (onNavigate) {
                     onNavigate("Submission Form", { eventId, name: eventName });
@@ -482,7 +511,7 @@ export default function HackathonDetail({ onNavigate, eventId = "evt_smart_hack_
                   ? "Proceed to Submission (Closed)"
                   : !isParticipant
                     ? "Log in as Participant to Join"
-                    : (joined ? "Go to Submission Form" : "Join and Confirm")}
+                    : (participantStatus?.team ? "View Participant Dashboard" : (joined ? "Go to Submission Form" : "Join and Confirm"))}
                 <ArrowRight size={15} />
               </button>
 

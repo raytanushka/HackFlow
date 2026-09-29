@@ -1,6 +1,7 @@
+import hashlib
 import uuid
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Optional, Any
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -130,17 +131,46 @@ class ProjectService:
         return project
 
     @staticmethod
-    def list_projects(db: Session, event_id: Optional[str] = None) -> List[dict]:
+    def list_projects(
+        db: Session,
+        event_id: Optional[str] = None,
+        seed: Optional[str] = None,
+        user_id: Optional[str] = None
+    ) -> List[dict]:
         query = db.query(Project)
         if event_id:
             query = query.filter(Project.event_id == event_id)
         
         projects = query.order_by(Project.submitted_at.desc()).all()
+        now = datetime.utcnow()
+        
+        # Cache events voting status
+        event_voting_map = {}
+        for ev in db.query(Event).all():
+            if not ev.voting_open:
+                st = "upcoming" if (ev.submissions_close and now < ev.submissions_close) else "open"
+            elif now < ev.voting_open:
+                st = "upcoming"
+            elif ev.voting_close and now > ev.voting_close:
+                st = "closed"
+            else:
+                st = "open"
+            event_voting_map[ev.id] = st
+
+        # User's voted project IDs if user_id is provided
+        user_voted_set = set()
+        if user_id:
+            from backend.app.models.vote import Vote
+            votes = db.query(Vote.project_id).filter(Vote.participant_id == user_id).all()
+            user_voted_set = {v[0] for v in votes}
+
         result = []
         for p in projects:
             track = db.query(Track).filter(Track.id == p.track_id).first()
             team = db.query(Team).filter(Team.id == p.team_id).first()
-            result.append({
+            v_status = event_voting_map.get(p.event_id, "closed")
+            
+            proj_dict = {
                 "id": p.id,
                 "event_id": p.event_id,
                 "team_id": p.team_id,
@@ -151,6 +181,78 @@ class ProjectService:
                 "summary": p.summary,
                 "repo_url": p.repo_url,
                 "demo_url": p.demo_url,
-                "submitted_at": p.submitted_at
-            })
+                "submitted_at": p.submitted_at.isoformat() if p.submitted_at else None,
+                "status": "Submitted",
+                "voting_status": v_status,
+                "has_voted": p.id in user_voted_set if user_id else False
+            }
+            
+            # Critical T3 requirement: Hide results during voting window!
+            # If voting is open, vote counts must NOT be returned.
+            if v_status == "closed":
+                from backend.app.models.vote import Vote
+                proj_dict["vote_count"] = db.query(Vote).filter(Vote.project_id == p.id).count()
+            else:
+                proj_dict["vote_count"] = None
+                
+            result.append(proj_dict)
+
+        # Deterministic session-based randomized ballot ordering if seed is provided
+        if seed:
+            result.sort(key=lambda p: hashlib.sha256(f"{seed}:{p['id']}".encode()).hexdigest())
+
         return result
+
+    @staticmethod
+    def get_project(db: Session, project_id: str, user: Optional[Any] = None) -> dict:
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if not project:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Project '{project_id}' not found")
+        
+        track = db.query(Track).filter(Track.id == project.track_id).first()
+        team = db.query(Team).filter(Team.id == project.team_id).first()
+        event = db.query(Event).filter(Event.id == project.event_id).first()
+        
+        teammates = []
+        if team:
+            members = db.query(TeamMember).filter(TeamMember.team_id == team.id).all()
+            teammates = [m.user_email for m in members]
+
+        from backend.app.services.voting import VotingService
+        voting_status = VotingService.get_event_voting_status(event) if event else "closed"
+
+        has_voted = False
+        is_own = False
+        if user:
+            from backend.app.models.vote import Vote
+            existing = db.query(Vote).filter(Vote.participant_id == user.id, Vote.project_id == project.id).first()
+            has_voted = bool(existing)
+            is_own = VotingService.is_own_project(db, project, user)
+
+        proj_dict = {
+            "id": project.id,
+            "event_id": project.event_id,
+            "event_name": event.name if event else None,
+            "team_id": project.team_id,
+            "team_name": team.name if team else None,
+            "teammates": teammates,
+            "track_id": project.track_id,
+            "track_name": track.name if track else None,
+            "title": project.title,
+            "summary": project.summary,
+            "repo_url": project.repo_url,
+            "demo_url": project.demo_url,
+            "submitted_at": project.submitted_at.isoformat() if project.submitted_at else None,
+            "voting_status": voting_status,
+            "has_voted": has_voted,
+            "is_own": is_own
+        }
+
+        # Hide vote count during active voting
+        if voting_status == "closed":
+            from backend.app.models.vote import Vote
+            proj_dict["vote_count"] = db.query(Vote).filter(Vote.project_id == project.id).count()
+        else:
+            proj_dict["vote_count"] = None
+
+        return proj_dict

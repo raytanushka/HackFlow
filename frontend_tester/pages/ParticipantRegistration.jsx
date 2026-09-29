@@ -14,18 +14,17 @@ const PERKS = [
 
 export default function ParticipantRegistration({
   onNavigate,
-  eventId = "evt_smart_hack_2027",
-  eventName,
+  eventId = "evt_01",
+  eventName = "Sample Hack 2026",
   onRegistrationSuccess,
-  user,
   redirectTo
 }) {
   const [navOpen, setNavOpen] = useState(false);
   const [dbEvent, setDbEvent] = useState(null);
-  const [name, setName] = useState(user?.name || "");
-  const [studentId, setStudentId] = useState(user?.studentId || "");
-  const [email, setEmail] = useState(user?.email || "");
-  const [college, setCollege] = useState(user?.college || "");
+  const [name, setName] = useState("");
+  const [studentId, setStudentId] = useState("");
+  const [email, setEmail] = useState("");
+  const [college, setCollege] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -47,10 +46,26 @@ export default function ParticipantRegistration({
     || (!isGenericDefault && eventName ? eventName : null)
     || (eventId === "evt_fintech" ? "FinTech Buildathon" : (eventId === "evt_01" ? "Sample Hack 2026" : "FinTech Buildathon"));
 
-  const canContinue = name.trim() && studentId.trim() && email.trim() && college.trim();
+  const canContinue = Boolean(name.trim() && studentId.trim() && email.trim() && college.trim());
 
-  const handleContinue = async () => {
-    if (!canContinue || loading) return;
+  const handleContinue = async (e) => {
+    if (e && e.preventDefault) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (loading) return;
+
+    if (!name.trim() || !studentId.trim() || !email.trim() || !college.trim()) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email.trim())) {
+      setError("Please enter a valid email address (e.g. name@college.edu).");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -61,7 +76,7 @@ export default function ParticipantRegistration({
         credentials: "include",
         body: JSON.stringify({
           name: name.trim(),
-          email: email.trim(),
+          email: email.trim().toLowerCase(),
           student_id: studentId.trim(),
           college: college.trim(),
           event_id: eventId
@@ -103,7 +118,7 @@ export default function ParticipantRegistration({
         eventName: (data.event && data.event.name) || displayEventName
       };
 
-      localStorage.setItem("hackflow_participant", JSON.stringify(participantData));
+      // Only persist necessary session credentials
       localStorage.setItem("hackflow_user", JSON.stringify(participantData));
       localStorage.setItem("hackflow_token", data.token);
 
@@ -112,7 +127,7 @@ export default function ParticipantRegistration({
       }
       setSubmitted(true);
       if (onNavigate) {
-        onNavigate(redirectTo || "Submission Form", { eventId, name: (data.event && data.event.name) || displayEventName });
+        onNavigate(redirectTo || "Participant Dashboard", { eventId, name: (data.event && data.event.name) || displayEventName });
       }
     } catch (err) {
       const msg = typeof err === "string" ? err : (err?.message || "Failed to register participant.");
@@ -250,61 +265,92 @@ export default function ParticipantRegistration({
                     Fill in the information below to register as a participant.
                   </p>
 
-                  <Field label="Full name" required>
-                    <div style={{ position: "relative" }}>
-                      <User size={16} className="field-icon" />
-                      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter your full name" />
-                    </div>
-                  </Field>
+                  <form onSubmit={handleContinue}>
+                    <Field label="Full name" required>
+                      <div style={{ position: "relative" }}>
+                        <User size={16} className="field-icon" />
+                        <input
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="Enter your full name"
+                          autoComplete="name"
+                          disabled={loading}
+                        />
+                      </div>
+                    </Field>
 
-                  <Field label="Student ID" required>
-                    <div style={{ position: "relative" }}>
-                      <CreditCard size={16} className="field-icon" />
-                      <input value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="e.g. 2027CS001" />
-                    </div>
-                  </Field>
+                    <Field label="Student ID" required>
+                      <div style={{ position: "relative" }}>
+                        <CreditCard size={16} className="field-icon" />
+                        <input
+                          type="text"
+                          value={studentId}
+                          onChange={(e) => setStudentId(e.target.value)}
+                          placeholder="e.g. 2027CS001"
+                          autoComplete="off"
+                          disabled={loading}
+                        />
+                      </div>
+                    </Field>
 
-                  <Field label="Email address" required>
-                    <div style={{ position: "relative" }}>
-                      <Mail size={16} className="field-icon" />
-                      <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@college.edu" />
-                    </div>
-                  </Field>
+                    <Field label="Email address" required>
+                      <div style={{ position: "relative" }}>
+                        <Mail size={16} className="field-icon" />
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="you@college.edu"
+                          autoComplete="email"
+                          disabled={loading}
+                        />
+                      </div>
+                    </Field>
 
-                  <Field label="College name" required>
-                    <div style={{ position: "relative" }}>
-                      <Building2 size={16} className="field-icon" />
-                      <input value={college} onChange={(e) => setCollege(e.target.value)} placeholder="Enter your college name" />
-                    </div>
-                  </Field>
+                    <Field label="College name" required>
+                      <div style={{ position: "relative" }}>
+                        <Building2 size={16} className="field-icon" />
+                        <input
+                          type="text"
+                          value={college}
+                          onChange={(e) => setCollege(e.target.value)}
+                          placeholder="Enter your college name"
+                          autoComplete="organization"
+                          disabled={loading}
+                        />
+                      </div>
+                    </Field>
 
-                  {error && (
-                    <div style={{
-                      background: "rgba(239,68,68,0.1)",
-                      border: "1px solid rgba(239,68,68,0.3)",
-                      borderRadius: 8,
-                      padding: "10px 14px",
-                      marginBottom: 16,
-                      fontSize: 13,
-                      color: "#FCA5A5"
-                    }}>
-                      {typeof error === "string" ? error : JSON.stringify(error)}
-                    </div>
-                  )}
+                    {error && (
+                      <div style={{
+                        background: "rgba(239,68,68,0.1)",
+                        border: "1px solid rgba(239,68,68,0.3)",
+                        borderRadius: 8,
+                        padding: "10px 14px",
+                        marginBottom: 16,
+                        fontSize: 13,
+                        color: "#FCA5A5"
+                      }}>
+                        {typeof error === "string" ? error : JSON.stringify(error)}
+                      </div>
+                    )}
 
-                  <button
-                    disabled={!canContinue || loading}
-                    onClick={handleContinue}
-                    style={{
-                      width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                      background: canContinue && !loading ? "linear-gradient(135deg, #8A6EFC, #6D4FE8)" : "#262A34",
-                      color: canContinue && !loading ? "#FFFFFF" : "#5B5F6D",
-                      border: "none", padding: "14px", borderRadius: 10, fontSize: 15, fontWeight: 600,
-                      cursor: canContinue && !loading ? "pointer" : "not-allowed", fontFamily: "Inter, sans-serif", marginTop: 6,
-                    }}
-                  >
-                    {loading ? "Registering..." : "Register & Continue"} <ArrowRight size={16} />
-                  </button>
+                    <button
+                      type="submit"
+                      onClick={(e) => handleContinue(e)}
+                      disabled={!canContinue || loading}
+                      style={{
+                        width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                        background: canContinue && !loading ? "linear-gradient(135deg, #8A6EFC, #6D4FE8)" : "#262A34",
+                        color: canContinue && !loading ? "#FFFFFF" : "#5B5F6D",
+                        border: "none", padding: "14px", borderRadius: 10, fontSize: 15, fontWeight: 600,
+                        cursor: canContinue && !loading ? "pointer" : "not-allowed", fontFamily: "Inter, sans-serif", marginTop: 6,
+                      }}
+                    >
+                      {loading ? "Registering..." : "Register & Continue"} <ArrowRight size={16} />
+                    </button>
+                  </form>
 
                   <div style={{ textAlign: "center", marginTop: 14, fontSize: 13.5, color: "#9A96AC" }}>
                     Already registered?{" "}

@@ -11,9 +11,10 @@ from backend.app.models.event import Event
 class AuthService:
     @staticmethod
     def get_event_info(db: Session, event_id: Optional[str]) -> Optional[Dict[str, Any]]:
-        if not event_id:
-            return None
-        event = db.query(Event).filter(Event.id == event_id).first()
+        target_id = event_id if (event_id and event_id != "evt_smart_hack_2027") else "evt_01"
+        event = db.query(Event).filter(Event.id == target_id).first()
+        if not event:
+            event = db.query(Event).filter(Event.id == "evt_01").first()
         if not event:
             return None
         now = datetime.utcnow()
@@ -201,7 +202,19 @@ class AuthService:
         db.commit()
         db.refresh(user)
 
-        event_info = AuthService.get_event_info(db, event_id)
+        effective_event_id = event_id
+        if not effective_event_id or effective_event_id == "evt_smart_hack_2027":
+            from backend.app.models.team_member import TeamMember
+            from backend.app.models.team import Team
+            member = db.query(TeamMember).filter(TeamMember.user_email.ilike(normalized_email)).first()
+            if member:
+                tm = db.query(Team).filter(Team.id == member.team_id).first()
+                if tm and tm.event_id:
+                    effective_event_id = tm.event_id
+        if not effective_event_id or effective_event_id == "evt_smart_hack_2027":
+            effective_event_id = "evt_01"
+
+        event_info = AuthService.get_event_info(db, effective_event_id)
         return user, session_token, event_info
 
     @staticmethod

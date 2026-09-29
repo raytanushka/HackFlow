@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   Zap, Search, Filter, ChevronDown, Calendar, Building2, ArrowRight,
   ArrowLeft, Menu, X, CalendarDays, Brain, Leaf, TrendingUp, HeartPulse,
-  Lightbulb, GraduationCap, Lock,
+  Lightbulb, GraduationCap, Lock, LayoutDashboard,
 } from "lucide-react";
 
 const NAV = ["Home", "Hackathons", "Projects", "About"];
@@ -82,8 +82,9 @@ const HACKATHONS = [
   },
 ];
 
-export default function HackathonsListing({ onNavigate }) {
+export default function HackathonsListing({ onNavigate, user, onLogout }) {
   const [navOpen, setNavOpen] = useState(false);
+  const [userDropdown, setUserDropdown] = useState(false);
   const [page, setPage] = useState(1);
 
   return (
@@ -143,7 +144,10 @@ export default function HackathonsListing({ onNavigate }) {
 
           <div className="desktop-nav" style={{ gap: 28, flex: 1 }}>
             {NAV.map((item) => (
-              <a key={item} href="#" style={{
+              <a key={item} href="#" onClick={(e) => {
+                e.preventDefault();
+                if (item === "Home" && onNavigate) onNavigate("HackFlow Home");
+              }} style={{
                 color: item === "Hackathons" ? "#B8A9FD" : "#9A96AC", textDecoration: "none", fontSize: 14.5, fontWeight: 500,
                 borderBottom: item === "Hackathons" ? "2px solid #7C5CFC" : "2px solid transparent",
                 paddingBottom: 18, marginBottom: -19,
@@ -154,14 +158,87 @@ export default function HackathonsListing({ onNavigate }) {
           </div>
 
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14 }}>
-            <div className="desktop-nav" style={{
-              alignItems: "center", gap: 8, border: "1px solid #262A34", borderRadius: 9,
-              padding: "8px 14px", cursor: "pointer",
-            }}>
-              <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#262A34" }} />
-              <span style={{ fontSize: 13.5, color: "#C7C4D6" }}>Demo User</span>
-              <ChevronDown size={14} color="#5B5F6D" />
-            </div>
+            {user ? (
+              <div style={{ position: "relative" }}>
+                <div
+                  className="desktop-nav"
+                  onClick={() => setUserDropdown(!userDropdown)}
+                  style={{
+                    alignItems: "center", gap: 8, border: "1px solid #7C5CFC", borderRadius: 9,
+                    padding: "8px 14px", cursor: "pointer", background: "rgba(124,92,252,0.12)",
+                    display: "flex"
+                  }}
+                >
+                  <div style={{
+                    width: 22, height: 22, borderRadius: "50%", background: "#7C5CFC",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#FFF", fontSize: 11, fontWeight: 700
+                  }}>
+                    {user.name ? user.name.charAt(0).toUpperCase() : (user.role === "participant" ? "P" : "O")}
+                  </div>
+                  <span style={{ fontSize: 13.5, color: "#E8E6F0", fontWeight: 600 }}>
+                    {user.name || (user.role === "participant" ? "Participant" : "Organizer")}
+                  </span>
+                  <ChevronDown size={14} color="#9A96AC" />
+                </div>
+
+                {userDropdown && (
+                  <div style={{
+                    position: "absolute", top: "115%", right: 0, width: 200, background: "#14161C",
+                    border: "1px solid #262A34", borderRadius: 10, padding: 8, zIndex: 100,
+                    boxShadow: "0 10px 25px rgba(0,0,0,0.5)"
+                  }}>
+                    <div style={{ padding: "8px 12px", borderBottom: "1px solid #202430", marginBottom: 6 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#E8E6F0" }}>{user.name}</div>
+                      <div style={{ fontSize: 11.5, color: "#9A96AC", overflow: "hidden", textOverflow: "ellipsis" }}>{user.email}</div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setUserDropdown(false);
+                        if (onNavigate) {
+                          if (user.role === "participant") {
+                            onNavigate("Participant Dashboard");
+                          } else {
+                            onNavigate("Organizer Dashboard");
+                          }
+                        }
+                      }}
+                      style={{
+                        width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px",
+                        background: "none", border: "none", color: "#C7C4D6", fontSize: 13,
+                        cursor: "pointer", borderRadius: 6, textAlign: "left"
+                      }}
+                    >
+                      <LayoutDashboard size={14} color="#8A6EFC" /> Dashboard
+                    </button>
+                    <button
+                      onClick={() => {
+                        setUserDropdown(false);
+                        if (onLogout) onLogout();
+                      }}
+                      style={{
+                        width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "9px 12px",
+                        background: "none", border: "none", color: "#F87171", fontSize: 13,
+                        cursor: "pointer", borderRadius: 6, textAlign: "left", marginTop: 4
+                      }}
+                    >
+                      Log Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => onNavigate && onNavigate("Login", { role: "participant" })}
+                style={{
+                  background: "transparent", border: "1px solid #7C5CFC", color: "#B8A9FD",
+                  padding: "8px 16px", borderRadius: 8, fontSize: 13.5, fontWeight: 500,
+                  cursor: "pointer"
+                }}
+              >
+                Log In
+              </button>
+            )}
             <button
               className="mobile-toggle"
               onClick={() => setNavOpen((n) => !n)}

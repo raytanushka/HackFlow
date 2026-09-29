@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, Any
 
 class OrganizerRegisterRequest(BaseModel):
     name: str
@@ -44,9 +44,17 @@ class UserResponse(BaseModel):
     email: str
     role: str
     org_id: Optional[str] = None
+    participant_id: Optional[str] = None
 
     class Config:
         orm_mode = True
+
+    @classmethod
+    def from_orm(cls, obj: Any) -> "UserResponse":
+        res = super().from_orm(obj)
+        if not res.participant_id and res.role == "participant":
+            res.participant_id = res.id
+        return res
 
 class AuthResponse(BaseModel):
     token: str
