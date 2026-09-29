@@ -56,3 +56,12 @@ def require_organizer(request: Request, db: DBSession = Depends(get_db)):
         )
     return session
 
+def require_judge(request: Request, db: DBSession = Depends(get_db)):
+    session = get_current_session(request, db)
+    if session.get("role") not in ("judge", "organizer", "admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access forbidden: judge role required",
+        )
+    return session
+

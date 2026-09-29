@@ -1,5 +1,6 @@
-from sqlalchemy import Column, String, Integer
+from sqlalchemy import Column, String, Integer, DateTime
 from backend.app.db.database import Base
+from datetime import datetime
 
 class Score(Base):
     __tablename__ = "scores"
@@ -11,3 +12,5 @@ class Score(Base):
     quality = Column(Integer, nullable=False)
     innovation = Column(Integer, nullable=False)
     comment = Column(String, nullable=True)
+    created_at = Column(DateTime, nullable=True, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=True, default=datetime.utcnow, onupdate=datetime.utcnow)

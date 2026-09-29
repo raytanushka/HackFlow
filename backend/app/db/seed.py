@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+from sqlalchemy import text
 from backend.app.db.database import Base, engine, SessionLocal
 from backend.app.models.user import User
 from backend.app.models.event import Event
@@ -10,9 +11,16 @@ from backend.app.models.team_member import TeamMember
 from backend.app.models.project import Project
 from backend.app.models.score import Score
 from backend.app.models.session import Session
+from backend.app.models.judge_assignment import JudgeAssignment
+from backend.app.models.judge_comment import JudgeComment
+from backend.app.models.audit import AuditLog
 
 def seed_database():
     Base.metadata.create_all(bind=engine)
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE scores ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"))
+        conn.execute(text("ALTER TABLE scores ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"))
+        conn.commit()
     db = SessionLocal()
 
     try:
@@ -113,6 +121,20 @@ def seed_database():
                 db.add(new_session)
 
         db.commit()
+
+        # Seed judge assignments if not yet present
+        if db.query(JudgeAssignment).count() == 0:
+            print("Seeding judge assignments from fixtures.json...")
+            for jdg in data.get("judges", []):
+                for trk_id in jdg.get("tracks", []):
+                    existing_assign = db.query(JudgeAssignment).filter(
+                        JudgeAssignment.judge_id == jdg["id"],
+                        JudgeAssignment.track_id == trk_id
+                    ).first()
+                    if not existing_assign:
+                        db.add(JudgeAssignment(judge_id=jdg["id"], track_id=trk_id))
+            db.commit()
+            print("Judge assignments seeded successfully.")
 
         # Seed open live/demo event: Smart Hack 2027 (clearly separated from fixtures.json)
         demo_event_id = "evt_smart_hack_2027"

@@ -40,6 +40,9 @@ const getPageFromPath = (path) => {
   if (cleanPath === "/judge" || cleanPath === "/judge/dashboard" || cleanPath === "/judge-dashboard") {
     return "Judge Dashboard";
   }
+  if (cleanPath.startsWith("/judge/projects/") || cleanPath.startsWith("/judge-project/")) {
+    return "Project Evaluation";
+  }
   return "HackFlow Home";
 };
 
@@ -74,6 +77,9 @@ const getPathFromPage = (pageName) => {
     case "Judge Dashboard":
     case "judge-dashboard":
       return "/judge/dashboard";
+    case "Project Evaluation":
+    case "project-evaluation":
+      return navParams.projectId ? `/judge/projects/${navParams.projectId}` : "/judge/dashboard";
     default:
       return "/";
   }
@@ -393,6 +399,7 @@ export default function App() {
             user={user}
             onNavigate={handleNavigate}
             onLogout={handleLogout}
+            projectId={navParams.projectId || (typeof window !== "undefined" && window.location.pathname.startsWith("/judge/projects/") ? window.location.pathname.split("/").pop() : "prj_01")}
           />
         );
       default:
